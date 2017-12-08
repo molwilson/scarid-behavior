@@ -1,0 +1,79 @@
+---
+title: "Antigua-Barbuda Benthic and Rugosity Data"
+output: html_document
+---
+
+# Benthic and Rugosity data 
+*required files: benthic.csv; rugosity.csv*
+
+## Part 1. Setup
+
+### 1.1 Load packages
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+# set up
+library(lazyeval)
+library(rmarkdown)
+library(dplyr)
+library(plyr)
+library(tidyr)
+library(ggplot2)
+library(grid)
+library(stringr)
+library(reshape2)
+library(data.table)
+```
+### 1.2 Import and format files
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+setwd("~/github/Scarid-Behavior/data")
+benthic<-read.csv("benthic_anu.csv", stringsAsFactors=FALSE)
+rugosity<-read.csv("rugosity.csv", stringsAsFactors=FALSE)
+```
+
+## Part 2. Benthic summary data
+
+### 2.1 Percent cover
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+# Because not all categories were present within each meter, I need to create template to add 0 values in meters where they were absent.
+expand.meter <- benthic %>% group_by(Site,Transect,Meter) %>% dplyr::summarize()
+expand.category <- benthic %>% expand(nesting(Code),Site)
+temp.benthic <- full_join(expand.meter,expand.category,by="Site")
+
+# Then I can join benthic data with this template, and replace empty rows with 0 values
+benthic.meter<- benthic %>% group_by(Site,Transect,Meter,Code) %>% dplyr::summarize(count.m=n()) %>% right_join(temp.benthic, by=c("Site","Transect","Meter","Code")) # join transect-level data with template
+benthic.meter[is.na(benthic.meter)] <- 0 # convert NAs to 0 biomass/density in transects where a species is not present
+
+# Calculating percent cover on potential substrate (i.e. not sand), remove meters that were 100% sand cover (no potential susbtrate)
+sand.meter <- benthic.meter %>% filter(Code=="sand") %>% dplyr::rename(count.sand=count.m) %>% select(-Code) 
+benthic.meter <- left_join(benthic.meter,sand.meter,by=c("Site","Transect","Meter")) %>% mutate(cover.m=100*count.m/(10-count.sand)) %>% filter(!is.nan(cover.m)) %>% filter(Code!="sand") 
+
+benthic.trans<-benthic.meter %>% group_by(Site,Transect,Code) %>% dplyr::summarize(cover.t=mean(cover.m))
+benthic.site<-benthic.trans %>% group_by(Site,Code) %>% dplyr::summarize(n=n(),cover=mean(cover.t),cover.se=sd(cover.t)/sqrt(n)) %>% select(-n)
+
+# Now need to spread data into wide site-level format
+benthic.wide<-dcast(setDT(benthic.site),Site~Code,value.var=c("cover","cover.se"))
+```
+
+### 2.2 Algal canopy heights
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+benthic$Height<- as.numeric(benthic$Height)
+canopy.site <- benthic %>% filter(Height>1) %>% group_by(Site,Transect,Meter,Code) %>% dplyr::summarize(canopy.m=mean(Height)) %>% group_by(Site,Transect,Code) %>% dplyr::summarize(canopy.t=mean(canopy.m)) %>% group_by(Site,Code) %>% dplyr::summarize(n=n(),canopy=mean(canopy.t),canopy.se=sd(canopy.t)/sqrt(n)) %>% select(-n)
+
+# spread into wide site-level format, join with percent cover data in benthic.wide
+canopy.wide <- dcast(setDT(canopy.site),Site~Code,value.var=c("canopy","canopy.se"))
+site.benthic<- left_join(benthic.wide,canopy.wide,by="Site")
+```
+
+### 2.3 Rugosity
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+site.rugosity <- rugosity  %>% group_by(Site,Transect) %>% dplyr::summarize(rugosity.t=mean(Rugosity.cm)/100) %>% group_by(Site) %>% dplyr::summarize(n=n(),rugosity=mean(rugosity.t),rugosity.se=sd(rugosity.t)/sqrt(n)) %>% select(-n) %>% rbind(c("Pallaster West",1.7006,NA)) # missing data for Pallaster West, will use mean of Pallaster East and Mid because reef structure across all three was extremely similar
+site.rugosity$rugosity<-as.numeric(as.character(site.rugosity$rugosity))
+site.rugosity$rugosity.se<-as.numeric(as.character(site.rugosity$rugosity.se))
+site.benthic <- full_join(site.benthic, site.rugosity,by="Site")
+```
+
+## Part 3. Compile into single df, combine with Bonaire data, and export csv
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+bonbenthic <- read.csv("Bonaire_benthic.csv",stringsAsFactors = FALSE)
+site.benthic <- bind_rows(site.benthic,bonbenthic)
+write.csv(site.benthic,file="site.benthic.csv")
+```
