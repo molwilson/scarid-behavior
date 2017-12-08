@@ -24,8 +24,8 @@ library(data.table)
 ```
 ### 1.2 Import and format files
 ```{r, echo=FALSE,message=FALSE,warning=FALSE}
-setwd("~/github/Scarid-Behavior/")
-benthic<-read.csv("benthic.csv", stringsAsFactors=FALSE)
+setwd("~/github/Scarid-Behavior/data")
+benthic<-read.csv("benthic_anu.csv", stringsAsFactors=FALSE)
 rugosity<-read.csv("rugosity.csv", stringsAsFactors=FALSE)
 ```
 

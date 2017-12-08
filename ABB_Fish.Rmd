@@ -1,0 +1,162 @@
+---
+title: "Antigua-Barbuda Fish Community Data: August 2017"
+author: "Molly Wilson"
+date: "8/8/2017"
+output:
+  html_document:
+    df_print: paged
+---
+# Fish community data 
+*required files: fish.csv*
+
+## Part 1. Setup
+
+### 1.1 Load packages
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+# set up
+setwd("~/Google Drive/Research + Projects/Dissertation/ABB_Grazing/Analysis")
+library(lazyeval)
+library(rmarkdown)
+library(tidyr)
+library(ggplot2)
+library(grid)
+library(dplyr)
+```
+
+### 1.2 Import and format Antigua-Barbuda and Bonaire files
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+AB <-read.csv("fish.csv", stringsAsFactors=FALSE)
+AB <- AB[rep(row.names(AB), AB$Number), 1:18] # expand to replicate rows if multiple fish were recorded
+AB <- AB %>% select(-c(Time,Depth.ft,Surveyor,Number,Date))
+
+bonherb<-read.csv("Bonaire_herbivores.csv", stringsAsFactors=FALSE) %>% filter(Date==2017) %>% select(-Date) 
+boncarn<-read.csv("Bonaire_carnivores_2017.csv", stringsAsFactors=FALSE)
+boncarn <- boncarn[rep(row.names(boncarn), boncarn$Number), 1:16] %>% select(-c(Number,Diver,Date))
+bonaire <- bind_rows(bonherb,boncarn) %>% filter(Site=="Oil Slick" | Site=="Karpata" | Site=="Front Porch" | Site=="18th Palm")
+
+# bind Bonaire and AB data
+fish <- bind_rows(AB,bonaire)
+
+fish[fish==""]  <- NA 
+fish[fish=="#NUM!"] <- NA
+fish$Biomass <- as.numeric(fish$Biomass)
+denuder <- fish %>% filter(Family=="Scaridae" | Family=="Acanthuridae")
+scarid <- fish %>% filter(Family=="Scaridae")
+acan <- fish %>% filter(Family=="Acanthuridae")
+carnivore <- fish %>% filter(Family=="Serranidae" | Family=="Lutjanidae" | Family=="Carangidae") # need to expand appropriately, could specify potential predators
+```
+
+## Part 2. Summary Data
+*2.1 Total fish populations, by site
+*2.2 Total fish populations, by species and site
+*2.2 Total denuder populations, by site
+*2.3 Total scarid populations, by site
+*2.4 Scarid populations, by species and site
+*2.5 Scarid populations, by phase and site
+*2.6 Total carnivore populations, by site
+
+### 2.1 Total fish population, by site
+```{r,message=FALSE,warning=FALSE}
+totfish.tran<- fish %>% filter(Biomass != 0) %>% group_by(Island,Site,Transect) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2, L.t=mean(Length))
+site.totfish<-totfish.tran %>% group_by(Site) %>% dplyr::summarize(n=n(), tot.BM=mean(BM.t), tot.BM.se=(sd(BM.t))/sqrt(n), tot.DEN=mean(DEN.t), tot.DEN.se=(sd(DEN.t))/sqrt(n), tot.L=mean(L.t), tot.L.se=(sd(L.t))/sqrt(n)) %>% select(-n) # average across transects within each site
+boxplot(BM.t~Site, las=2, data = totfish.tran)
+```
+
+
+### 2.2 Total fish populations, by species and site
+
+```{r,message=FALSE,warning=FALSE}
+# Because not all species were present at each site/transect, I need to create template to add 0 values for biomass and density in transects where they are absent.
+expand.tran <- fish %>% group_by(Site,Transect) %>% dplyr::summarize()
+expand.species <- fish %>% expand(nesting(Species,Family),Site)
+temp.species <- full_join(expand.species,expand.tran,by="Site")
+
+# Then I can join species/transect data with this species/transect template, and replace empty rows with 0 values
+
+# biomass and density, by site and species:
+species.tran<- fish %>% filter(Biomass != 0) %>% group_by(Site,Transect,Species) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2) %>% right_join(temp.species, by=c("Site","Transect","Species")) # join transect-level data with template
+species.tran[is.na(species.tran)] <- 0 # convert NAs to 0 biomass/density in transects where a species is not present
+species.site<-species.tran %>% group_by(Site,Species,Family) %>% dplyr::summarize(n=n(), BM=mean(BM.t), BM.se=(sd(BM.t))/sqrt(n), DEN=mean(DEN.t), DEN.se=(sd(DEN.t))/sqrt(n))
+
+# length, by site and species (calculated separately because transects missing length values should not be replaced with 0 values)
+species.L.tran <- fish %>% group_by(Site,Transect,Species) %>% dplyr::summarize(L.t=mean(Length))
+species.L.site<-species.L.tran %>% group_by(Site,Species) %>% dplyr::summarize(L.n=n(),L=mean(L.t), L.se=(sd(L.t))/sqrt(L.n))
+species.site <- species.site %>% left_join(species.L.site) # sample size will be different for length (L.n - only transects where species was observed) vs. biomass/density (n - all transects) calculations
+```
+
+### 2.3 Total denuder populations, by site
+```{r,message=FALSE,warning=FALSE}
+herb.tran<- denuder %>% filter(Biomass != 0) %>% group_by(Site,Transect) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2, L.t=mean(Length))
+site.herb<-herb.tran %>% group_by(Site) %>% dplyr::summarize(n=n(), herb.BM=mean(BM.t), herb.BM.se=(sd(BM.t))/sqrt(n), herb.DEN=mean(DEN.t), herb.DEN.se=(sd(DEN.t))/sqrt(n), herb.L.s=mean(L.t), herb.L.se=(sd(L.t))/sqrt(n)) %>% select(-n)
+```
+
+### 2.3 Total acanthurid populations, by site
+```{r,message=FALSE,warning=FALSE}
+acan.tran<- acan %>% filter(Biomass != 0) %>% group_by(Site,Transect) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2, L.t=mean(Length))
+site.acan<-acan.tran %>% group_by(Site) %>% dplyr::summarize(n=n(), acan.BM=mean(BM.t), acan.BM.se=(sd(BM.t))/sqrt(n), acan.DEN=mean(DEN.t), acan.DEN.se=(sd(DEN.t))/sqrt(n), acan.L=mean(L.t), acan.L.se=(sd(L.t))/sqrt(n)) %>% select(-n)
+```
+
+### 2.4 Total scarid populations, by site
+```{r,message=FALSE,warning=FALSE}
+scarid.tran<- scarid %>% filter(Biomass != 0) %>% group_by(Site,Transect) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2, L.t=mean(Length))
+site.scar<-scarid.tran %>% group_by(Site) %>% dplyr::summarize(n=n(), scar.BM=mean(BM.t), scar.BM.se=(sd(BM.t))/sqrt(n), scar.DEN=mean(DEN.t), scar.DEN.se=(sd(DEN.t))/sqrt(n), scar.L=mean(L.t), scar.L.se=(sd(L.t))/sqrt(n)) %>% select(-n)
+```
+
+### 2.5 Scarid populations, by species and site
+```{r,message=FALSE,warning=FALSE}
+scarid.species <- species.site %>% filter(Family=="Scaridae") %>% select(-Family,-n) %>% ungroup()
+
+# spread to site-level df with columns for each species' variables (ran into errors with unite/spread, so instead will do separately for each species)
+viride <- scarid.species %>% filter(Species=="Sparisoma viride") %>% select(-Species)
+names(viride)[2:8] <- c("viride.BM","viride.BM.se","viride.DEN","viride.DEN.se","viride.L.n","viride.L","viride.L.se")
+vetula <- scarid.species %>% filter(Species=="Scarus vetula") %>% select(-Species)
+names(vetula)[2:8] <- c("vetula.BM","vetula.BM.se","vetula.DEN","vetula.DEN.se","vetula.L.n","vetula.L","vetula.L.se")
+aurofren <- scarid.species %>% filter(Species=="Sparisoma aurofrenatum") %>% select(-Species)
+names(aurofren)[2:8] <- c("aurofren.BM","aurofren.BM.se","aurofren.DEN","aurofren.DEN.se","aurofren.L.n","aurofren.L","aurofren.L.se")
+site.scar.sp <- left_join(viride,vetula,by="Site") %>% left_join(aurofren,by="Site")
+```
+
+### 2.6 Scarid populations, by phase and site
+I will expand again here to make template with all phase/site combinations, then join transect level data
+```{r,message=FALSE,warning=FALSE}
+expand.tran <- fish %>% group_by(Site,Transect) %>% dplyr::summarize()
+expand.phase <- scarid %>% expand(Phase,Site)
+temp.phase <- full_join(expand.phase,expand.tran,by="Site")
+
+# scarid biomass and density, by site and phase:
+phase.tran <- scarid %>% filter(Biomass != 0) %>% group_by(Site,Transect,Phase) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2) %>% right_join(temp.phase, by=c("Site","Transect","Phase")) # join transect-level data with template
+phase.tran[is.na(phase.tran)] <- 0 # convert NAs to 0 biomass/density in transects where a species is not present
+phase.site<-phase.tran %>% group_by(Site,Phase) %>% dplyr::summarize(n=n(), BM=mean(BM.t), BM.se=(sd(BM.t))/sqrt(n), DEN=mean(DEN.t), DEN.se=(sd(DEN.t))/sqrt(n))
+
+# length, by site and species (calculated separately because transects missing length values should not be replaced with 0 values)
+phase.L.tran <- scarid %>% group_by(Site,Transect,Phase) %>% dplyr::summarize(L.t=mean(Length))
+phase.L.site<-phase.L.tran %>% group_by(Site,Phase) %>% dplyr::summarize(L.n=n(),L=mean(L.t), L.se=(sd(L.t))/sqrt(L.n))
+phase.site <- phase.site %>% left_join(phase.L.site) # sample size will be different for length (L.n - only transects where species was observed) vs. biomass/density (n - all transects) calculations
+
+# spread to site-level df with columns for each species' variables (ran into errors with unite/spread, so instead will do separately for each species)
+juvenile <- phase.site %>% filter(Phase=="j") %>% select(-Phase,-n)
+names(juvenile)[2:8] <- c("juvenile.BM","juvenile.BM.se","juvenile.DEN","juvenile.DEN.se","juvenile.L.n","juvenile.L","juvenile.L.se")
+initial <- phase.site %>% filter(Phase=="i") %>% select(-Phase,-n)
+names(initial)[2:8] <- c("intial.BM","intial.BM.se","intial.DEN","intial.DEN.se","intial.L.n","intial.L","intial.L.se")
+terminal <- phase.site %>% filter(Phase=="t") %>% select(-Phase,-n)
+names(terminal)[2:8] <- c("terminal.BM","terminal.BM.se","terminal.DEN","terminal.DEN.se","terminal.L.n","terminal.L","terminal.L.se")
+site.scar.ph <- left_join(juvenile,initial,by="Site") %>% left_join(terminal,by="Site")
+```
+
+### 2.7 Total carnivore populations, by site
+I will need to use expanded template, because some transects had no serranid/lutjanids
+*NEED TO ADD LENGTH HERE*
+```{r,message=FALSE,warning=FALSE}
+carnivore.tran<- carnivore %>% filter(Biomass != 0) %>% group_by(Site,Transect) %>% dplyr::summarize(BM.t=sum(Biomass)/1.2, DEN.t=n()/1.2) %>% right_join(expand.tran,by=c("Site","Transect"))
+carnivore.tran[is.na(carnivore.tran)] <- 0 
+site.carn<-carnivore.tran %>% group_by(Site) %>% dplyr::summarize(n=n(), carn.BM=mean(BM.t), carn.BM.se=(sd(BM.t))/sqrt(n), carn.DEN=mean(DEN.t), carn.DEN.se=(sd(DEN.t))/sqrt(n)) %>% select(-n)
+```
+
+## Part 3. Combine into one wide dataframe by site, export csv for integration with follow data
+```{r,message=FALSE,warning=FALSE}
+site.fish <- site.totfish %>% left_join(site.herb,by="Site") %>% left_join(site.acan,by="Site") %>% left_join(site.scar,by="Site") %>% left_join(site.scar.sp,by="Site") %>% left_join(site.scar.ph,by="Site") %>% left_join(site.carn,by="Site")
+
+
+write.csv(site.fish,file="site.fish.csv")
+write.csv(species.site,file="species.site.csv")
+```

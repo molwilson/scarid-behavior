@@ -1,0 +1,42 @@
+---
+title: "Data integration"
+output: html_document
+---
+# Integrating fish follow data with site-level fish, benthic, and rugosity data 
+*Files: site.fish.csv, site.follows.csv, site.benthic.csv, site.human.csv, species.site.csv, sumID.csv*
+
+## Part 1. Setup
+
+```{r,message=FALSE,warning=FALSE}
+# set up
+setwd("~/Google Drive/Research + Projects/Dissertation/ABB_Grazing/Analysis")
+library(lazyeval)
+library(rmarkdown)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(grid)
+```
+### 1.2 Import and format files
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+site.follows<-read.csv("site.follows.csv",stringsAsFactors=FALSE)%>% select(-X)
+site.fish<-read.csv("site.fish.csv", stringsAsFactors=FALSE)%>% select(-X)
+site.benthic<-read.csv("site.benthic.csv", stringsAsFactors=FALSE)%>% select(-X)
+site.human<-read.csv("site.human.csv", stringsAsFactors=FALSE)
+species.site<-read.csv("species.site.csv",stringsAsFactors = FALSE)%>% filter(Species=="Sparisoma viride" | Species=="Scarus vetula" | Species=="Sparisoma aurofrenatum") %>% select(-X,-Family,-n,-L.n)
+names(species.site)[3:8] <- c("conspec.BM","conspec.BM.se","conspec.DEN","conspec.DEN.se","conspec.L","conspec.L.se")
+sumID <- read.csv("sumID.csv", stringsAsFactors=FALSE)%>% select(-X)
+```
+### 1.3 Join datasets, print .csv
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+# integrate all site-level variables
+site.sum <- site.follows %>% left_join(site.fish,by="Site") %>% left_join(site.benthic,by="Site") %>% left_join(site.human,by="Site") 
+# then join site-level data to sumID dataframe
+sumID2 <- sumID %>% left_join(site.fish,by="Site") %>% left_join(site.benthic,by="Site") %>% left_join(site.human,by="Site")
+# calculate conspecifc scarid variable to add to sumID2 (based on fish site/species)
+sumID2 <- sumID2 %>% left_join(species.site,by=c("Site","Species"))
+
+write.csv(site.sum,file="site.sum.csv")
+write.csv(sumID2,file="sumID2.csv")
+```
+
