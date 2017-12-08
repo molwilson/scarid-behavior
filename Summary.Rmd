@@ -1,0 +1,214 @@
+---
+title: "Dec. 1 Committee Meeting"
+author: "Molly Wilson"
+date: "12/1/2017"
+output:
+  html_document:
+    number_sections: yes
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+---
+
+```{r,message=FALSE,warning=FALSE, echo=FALSE}
+# set up
+setwd("~/Google Drive/Research + Projects/Dissertation/ABB_Grazing/Analysis")
+library(rmarkdown)
+library(dplyr)
+library(tidyr)
+library(lazyeval)
+library(ggplot2)
+library(ellipse)
+library(RColorBrewer)
+library(ggbiplot)
+library(nlme)
+library(pls)
+```
+```{r,message=FALSE,warning=FALSE, echo=FALSE}
+site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
+data <- read.csv("sumID2.csv", stringsAsFactors=FALSE) %>% select(Island,Site,Spearfishing,Diving,Species,Species.Code,Phase,Length.cm,g.frac,FR,BR,TDB,for.dur,for.bites,tot.BM,tot.DEN,scar.BM,herb.BM,scar.DEN,conspec.BM,conspec.DEN,carn.BM,carn.DEN,cover_CCA,cover_LC,cover_MA,cover_TA,canopy_MA,canopy_TA,rugosity,int.tot,int.con,int.hetscar,int.dam)
+vetvir <- data %>% filter(Species.Code!="rbp")
+vetvir20 <- vetvir %>% filter(Length.cm>=15 & Length.cm<=25)
+init20<- vetvir %>% filter(Length.cm>=15 & Length.cm<=25 & Phase=="i")
+```
+
+# Meeting objectives
+* Go through where I'm at in terms of chapters: progress and planning 
+    + Perspective paper on behavioral effects of human activities
+    + Fieldwork investigating variations in Scarid grazing across systems with different levels of human impact
+    + Linking behavior to potential ecological effects - likely through herbivory model
+    + Additional chapter: social-ecological impacts of parrotfish fishing ban in DR?
+* Where I need to get myself in terms of oral exams
+* Scheduling next meetings, sign Annual Review form
+
+# Scarid grazing data + analysis
+
+## Intro to the data
+
+**Hypothesis**: herbivorous fish (scarids) have reduced grazing impact in low herbivore biomass (high herb. fishing) systems
+
+* scarids feeding rates increase with scarid biomass  
+* foray size (bites/foray) and duration increase with scarid biomass  
+
+* 795 follows (2-min)
+* 13 sites across 3 islands (Antigua, Barbuda, Bonaire)
+* 2 focal species in Bonaire (Scarus vetula, Sparisoma viride - dominant grazers), but added Sparisoma aurofrenatum in Antigua & Barbuda because of low densities of viride and vetula in some sites
+* Possibility to integrate fish follow data from FL Keys and St. Croix (Burkepile), and Belize and Bahamas (Mumby)
+
+Site-level predictor variables:
+
+* fish community data: scarid biomass, scarid density, carnivore biomass
+* benthic community data: percent coral cover, percent turf algal cover, percent macroalgal cover, turf canopy height, macroalgal canopy height
+* rugosity
+
+Indv. fish-level predictor variables:
+
+* species
+* phase
+* length
+
+Indv. fish-level response variables:
+
+* fraction of time spent grazing (**g.frac**)
+* bite rate while grazing (bites/sec) (**BR**)
+* feeding rate (overall bite rate, bites/hr) (**FR**)
+* total daily bites (**TDB**)
+* foray size (bites per foray) (**for.bites**)
+* foray duration (seconds) (**for.dur**)
+
+Not done with analyses, but will introduce you to where I'm at....
+
+## Exploring predictors of grazing behavior
+
+### Grazing as a function of scarid biomass
+```{r,echo=FALSE,warning=FALSE, echo=FALSE}
+ggplot(vetvir,aes(x=scar.BM,y=FR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("navy", "darkseagreen", "slategray2"))
+```
+```{r,echo=FALSE,warning=FALSE, echo=FALSE}
+ggplot(vetvir,aes(x=scar.BM,y=FR,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rate by phase and scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
+```
+
+```{r, echo=FALSE,warning=FALSE, echo=FALSE}
+ggplot(vetvir,aes(x=scar.BM,y=BR,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bite rates (while grazing) by scarid biomass") + theme_minimal() +labs(y="Bite rate (bites/sec)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
+```
+
+```{r,echo=FALSE,warning=FALSE, echo=FALSE}
+ggplot(vetvir,aes(x=scar.BM,y=g.frac,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by phase and scarid biomass") + theme_minimal() +labs(y="Time Fraction",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
+```
+```{r,echo=FALSE,warning=FALSE, echo=FALSE}
+ggplot(vetvir,aes(x=scar.BM,y=for.bites,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bites per foray by phase and scarid biomass") + theme_minimal() +labs(y="Bites",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
+```
+
+### Grazing PCAs
+
+```{r, echo=FALSE,eval=FALSE}
+response <- vetvir %>% select(g.frac,FR,BR)
+log.vars5 <- log(response[,1:3])
+pca3 <- prcomp(na.omit(response),center = TRUE,scale. = TRUE) 
+summary(pca3)
+plot(pca3,type="l")
+ggbiplot(pca3, obs.scale = 1, var.scale = 1,ellipse = TRUE, circle = TRUE, alpha=0.4,varname.size = 5) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() +geom_point(aes(col=vetvir$scar.BM)) + labs(col="Scarid Biomass (g/100m2)", title="Grazing Behaviors by Scarid Biomass") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r,echo=FALSE}
+response <- vetvir %>% select(g.frac,FR,BR)
+log.vars5 <- log(response[,1:3])
+pca3 <- prcomp(na.omit(response),center = TRUE,scale. = TRUE) 
+ggbiplot(pca3, obs.scale = 1, var.scale = 1, groups=vetvir$Island,ellipse = TRUE, circle = TRUE, alpha=0.8,varname.size = 5) + theme_minimal() + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + labs(title="Grazing behaviors by island") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+### Grazing as a function of fish length
+```{r, echo=FALSE,warning=FALSE}
+ggplot(vetvir,aes(x=Length.cm,y=FR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rate by fish length") + theme_minimal() +labs(y="Feeding Rate (bites/hr)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "darkseagreen", "slategray2"))
+```
+
+```{r, echo=FALSE,warning=FALSE}
+ggplot(vetvir,aes(x=Length.cm,y=BR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bite rate (while grazing) by fish length") + theme_minimal() +labs(y="Bite Rate (bites/sec)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "darkseagreen", "slategray2"))
+```
+
+```{r, echo=FALSE,warning=FALSE}
+ggplot(vetvir,aes(x=Length.cm,y=g.frac,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by fish length") + theme_minimal() +labs(y="Time Fraction",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "darkseagreen", "slategray2"))
+```
+
+## Correlations among predictor variables
+Strong correlations between scarid biomass and both carnivore biomass and coral cover. I can address benthic corelations via PCA but don't really want to pool the fish predictors I'm interested in?
+```{r,echo=FALSE}
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y))
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste(prefix, txt, sep="")
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+pairs(~scar.BM+scar.DEN+carn.BM+cover_LC+cover_TA+canopy_MA+canopy_TA+rugosity, data=data,
+      lower.panel=panel.smooth, upper.panel=panel.cor, 
+      pch=20, main="Selected Fish and Benthic Variables",na.action = na.omit)
+```
+
+```{r, echo=FALSE}
+predictors1 <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
+pca1 <- prcomp(na.omit(predictors1),center = TRUE,scale. = TRUE) 
+ggbiplot(pca1, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, loadings.label.repel=TRUE) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() + labs(title="PCA of selected benthic variables")
+
+# add PC1 and PC2 as variables in dataset
+pca1.scores <- as.data.frame(pca1$x) %>% select(PC1,PC2)
+site.sum <- site.sum  %>% bind_cols(pca1.scores)
+pca1.scores <- select(site.sum,Site,PC1,PC2)
+data <- data %>% left_join(pca1.scores,by="Site")
+```
+
+## Mixed effect models 
+Investigating drivers of grazing behavior
+
+### Feeding rates
+```{r}
+vetvir <- data %>% filter(Species.Code!="rbp")
+lme_FR <- lme(FR~Phase+Length.cm+Species*scar.BM+scar.DEN+carn.BM+PC1+PC2,data=vetvir,random=~1|Island, na.action = na.omit)
+summary(lme_FR)
+```
+```{r}
+vetvir <- data %>% filter(Species.Code!="rbp")
+lme_for.bites <- lme(for.bites~Phase+Length.cm+Species*scar.BM+scar.DEN+carn.BM+PC1+PC2,data=vetvir,random=~1|Island, na.action = na.omit)
+summary(lme_for.bites)
+```
+
+# Grazing model?
+
+Potential to build off of Mumby & Co. models - primary models I have found that explicitly incorporate scarid feeding rates  
+* Mumby et al. (2006): *Fishing, trophic cascades, and the process of grazing on coral reefs*  
+* Mumby (2006): *The impact of exploiting grazers (Scaridae) on the dynamics of Caribbean coral reefs*  
+
+Essentially use Bruggemann (Bonaire) bite rates from viride and vetula, combined with data on bite size, to calculate total grazing intensity (cm2/hr) and then translates this into percent of reef maintained in grazed state
+
+Planning to work with Holly Moeller/take her ecological modelling class in the spring
+
+# Perspective piece
+
+Introduce outline/framing  
+* [human-induced behavioral effect pathways](https://docs.google.com/presentation/d/1l2plflfU6jZJWyrq4kHIunyacIrtJHNpgrbC4t6Lx3A/edit?usp=sharing)  
+* [outline](https://docs.google.com/document/d/1tdIV9Wu8Y-o1DvI9YleuZRdH5HVSU1PIX0gQYTnB6lA/edit?usp=sharing)
+
+# Chap. 3 (or 4?): social-ecological impacts of DR parrotfish ban?
+Recently implemented (summer 2017) and reportedly (somewhat) enforced 3 year parrotfish ban. We have catch data, ecological data, and fishermen interview data collected over the past 5 years.
+
+**Hypotheses**:  
+* shift in catch composition to other species/sizes  
+* shift to other gear types  
+* shifts to fishing abroad, or other livelihoods altogether  
+* economic impacts to fishermen (calculated through changes in catch, potential comparison of fish consumed at home)  
+
+# Side projects  
+* DR social survey design
+* Bonaire long-term monitoring data (recent paper submission)
+* KUNI Mariculture (manuscript in prep)
+* KUNI TURF project
+* potential Fish Forever data analysis with SFG?
+* __conferences for 2018?__
