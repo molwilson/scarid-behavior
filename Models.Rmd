@@ -1,0 +1,112 @@
+---
+title: "Model Trials"
+author: "Molly Wilson"
+date: "1/6/2018"
+output:
+  html_document:
+    number_sections: yes
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+---
+```{r}
+library(rmarkdown)
+library(dplyr)
+library(nlme)
+library(pls)
+library(mgcv)
+library(ggsignif)
+```
+
+```{r}
+setwd("~/github/Scarid-Behavior/data")
+data <- read.csv("data2.csv", stringsAsFactors=FALSE)
+vir<-data%>%filter(Species.Code=="stop")
+vet<-data%>%filter(Species.Code=="qup")
+auro<-data%>%filter(Species.Code=="rbp")
+vetvir<-data%>%filter(Species.Code!="rbp")
+```
+
+
+# Model trials
+
+## Basic lm to assess predictors of interest
+-site-level predictors: scar.BM, scar.DEN, benthic (PC1,PC2) (excluding carn.BM because almost fully cor. with scar.BM)
+-fish-level predictors: species, phase, length
+--eventually run separately for different species
+--species*scar.BM interaction?
+-response variables: g.frac, BR (?), and FR (run separately) *should I calculate site means at this point a la Nash et al?
+
+### Feeding rates
+```{r}
+lm_FR <- lm(FR~scar.BM*Species+Phase+Length.cm+PC1+PC2, data=data)
+summary(lm_FR)
+```
+*Notes: nearly everything is significant? Significant interaction between scar.BM and species for Spar. viride.*
+*R2 goes up slightly with initial only*
+
+### Fraction of time grazing
+```{r}
+lm_g.frac <- lm(g.frac~Species*scar.BM+Phase+scar.DEN+carn.BM+Phase+Length.cm+PC1+PC2, data=data)
+summary(lm_g.frac)
+```
+*Notes: carn.BM and PC1 are strongest predictors of time spent grazing, scar.BM and phase are also significant. Slight significance of species, length, and species-scar.BM interaction*
+
+## Mixed effects models
+- random effect: island
+
+### Feeding rates
+```{r}
+lme_FR <- lme(FR~Phase+Length.cm+Species*scar.BM+scar.DEN+carn.BM+PC1+PC2,data=data,random=~1|Island, na.action = na.omit)
+summary(lme_FR)
+```
+*Notes: nearly everything is significant except for PC2 and scar.DEN?*
+
+### Fraction of time spent grazing
+```{r}
+lme_g.frac <- lme(g.frac~Phase+Length.cm+Species*scar.BM+scar.DEN+carn.BM+PC1+PC2,data=data,random=~1|Island, na.action = na.omit)
+summary(lme_g.frac)
+```
+*Notes: carn.BM and phase are strongest predictors, followed by scar.BM, PC1, and length. Also significant interaction between *
+
+
+## GAMs
+```{r, echo=FALSE}
+gam<-gam(FR~Species+Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=data, method="REML")
+summary(gam)
+plot(gam,pages=1)
+```
+```{r, echo=FALSE}
+gamvet<-gam(FR~Phase+s(Length.cm)+s(scar.BM)+(carn.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vet, method="REML")
+summary(gamvet)
+plot(gamvet,pages=1)
+```
+```{r, echo=FALSE}
+vir<-data %>% filter(Species.Code=="stop" & Site!="Snapper Point")
+gamvir<-gam(FR~Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vir,method="REML")
+summary(gamvir)
+plot(gamvir,pages=1)
+```
+
+## GAMMs
+```{r, echo=FALSE}
+gamm<-gamm(FR~Species+Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=data, random=list(Island=~1),method="REML")
+summary(gamm$gam)
+plot(gamm$gam,pages=1)
+```
+### Modelling effects of predictors
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+gamm<-gamm(FR~Species+Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=data, random=list(Island=~1),method="REML")
+summary(gamm$gam)
+plot(gamm$gam,pages=1)
+```
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+gamm1<-gamm(g.frac~Species+Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=data, random=list(Island=~1),method="REML")
+summary(gamm1$gam)
+plot(gamm1$gam,pages=1)
+```
+------------------------

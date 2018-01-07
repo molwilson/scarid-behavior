@@ -1,5 +1,5 @@
 ---
-title: "Dec. 1 Committee Meeting"
+title: "Summary: Dec. 1 Committee Meeting"
 author: "Molly Wilson"
 date: "12/1/2017"
 output:
@@ -15,7 +15,6 @@ output:
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 # set up
-setwd("~/Google Drive/Research + Projects/Dissertation/ABB_Grazing/Analysis")
 library(rmarkdown)
 library(dplyr)
 library(tidyr)
@@ -28,6 +27,7 @@ library(nlme)
 library(pls)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
+setwd("~/github/Scarid-Behavior/data")
 site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
 data <- read.csv("sumID2.csv", stringsAsFactors=FALSE) %>% select(Island,Site,Spearfishing,Diving,Species,Species.Code,Phase,Length.cm,g.frac,FR,BR,TDB,for.dur,for.bites,tot.BM,tot.DEN,scar.BM,herb.BM,scar.DEN,conspec.BM,conspec.DEN,carn.BM,carn.DEN,cover_CCA,cover_LC,cover_MA,cover_TA,canopy_MA,canopy_TA,rugosity,int.tot,int.con,int.hetscar,int.dam)
 vetvir <- data %>% filter(Species.Code!="rbp")
@@ -83,6 +83,17 @@ Not done with analyses, but will introduce you to where I'm at....
 
 ## Exploring predictors of grazing behavior
 
+### Grazing behaviors by island
+```{r,echo=FALSE}
+response <- vetvir %>% select(g.frac,FR,BR)
+log.vars5 <- log(response[,1:3])
+pca3 <- prcomp(na.omit(response),center = TRUE,scale. = TRUE) 
+ggbiplot(pca3, obs.scale = 1, var.scale = 1, groups=vetvir$Island,ellipse = TRUE, circle = TRUE, alpha=0.8,varname.size = 5) + theme_minimal() + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + labs(title="Grazing behaviors by island") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+*BOXPLOTS*
+
+
 ### Grazing as a function of scarid biomass
 ```{r,echo=FALSE,warning=FALSE, echo=FALSE}
 ggplot(vetvir,aes(x=scar.BM,y=FR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("navy", "darkseagreen", "slategray2"))
@@ -102,7 +113,6 @@ ggplot(vetvir,aes(x=scar.BM,y=g.frac,colour=Phase))+facet_grid(.~Species)+geom_p
 ggplot(vetvir,aes(x=scar.BM,y=for.bites,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bites per foray by phase and scarid biomass") + theme_minimal() +labs(y="Bites",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
 ```
 
-### Grazing PCAs
 
 ```{r, echo=FALSE,eval=FALSE}
 response <- vetvir %>% select(g.frac,FR,BR)
@@ -112,15 +122,6 @@ summary(pca3)
 plot(pca3,type="l")
 ggbiplot(pca3, obs.scale = 1, var.scale = 1,ellipse = TRUE, circle = TRUE, alpha=0.4,varname.size = 5) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() +geom_point(aes(col=vetvir$scar.BM)) + labs(col="Scarid Biomass (g/100m2)", title="Grazing Behaviors by Scarid Biomass") + theme(plot.title = element_text(hjust = 0.5))
 ```
-
-
-```{r,echo=FALSE}
-response <- vetvir %>% select(g.frac,FR,BR)
-log.vars5 <- log(response[,1:3])
-pca3 <- prcomp(na.omit(response),center = TRUE,scale. = TRUE) 
-ggbiplot(pca3, obs.scale = 1, var.scale = 1, groups=vetvir$Island,ellipse = TRUE, circle = TRUE, alpha=0.8,varname.size = 5) + theme_minimal() + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + labs(title="Grazing behaviors by island") + theme(plot.title = element_text(hjust = 0.5))
-```
-
 
 ### Grazing as a function of fish length
 ```{r, echo=FALSE,warning=FALSE}

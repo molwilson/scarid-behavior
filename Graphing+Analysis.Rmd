@@ -230,7 +230,8 @@ ggplot(data,aes(x=Length.cm,y=g.frac,colour=Island))+facet_grid(.~Species)+geom_
 ## Grazing as a function of scarid biomass and density
 
 ```{r}
-ggplot(data,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_smooth(method="lm")+geom_point(shape=18)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+anubon <- data %>% filter(Island!="Barbuda")
+ggplot(anubon,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_smooth(method="loess")+geom_point(shape=18)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r,echo=FALSE,warning=FALSE}
@@ -238,7 +239,7 @@ ggplot(data,aes(x=scar.BM,y=FR,colour=Island))+facet_grid(.~Species)+geom_point(
 ```
 
 ```{r,echo=FALSE,warning=FALSE}
-ggplot(data,aes(x=scar.BM,y=FR,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rate by phase and scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
+ggplot(data,aes(x=scar.BM,y=FR,colour=Phase))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Feeding rate by phase and scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values=c("gray40", "aquamarine3"))
 ```
 
 ```{r, echo=FALSE,warning=FALSE, eval=FALSE}
@@ -282,27 +283,27 @@ summary(pca)
 
 plot(pca,type="l")
 ggbiplot(pca, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, varname.size = 2) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal()
-
 ```
 ### Benthic variables
-```{r}
-predictors1 <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
-pca1 <- prcomp(na.omit(predictors1),center = TRUE,scale. = TRUE) 
-summary(pca1)
+```{r, echo=FALSE}
+pred.benthic <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
+pca1 <- prcomp(na.omit(pred.benthic),center = TRUE,scale. = TRUE) 
 
-plot(pca1,type="l")
-ggbiplot(pca1, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, loadings.label.repel=TRUE) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal()
+ggbiplot(pca1, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, loadings.label.repel=TRUE, varname.size=2.5, varname.adjust=1.1) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal()
 
 # add PC1 and PC2 as variables in dataset
 pca1.scores <- as.data.frame(pca1$x) %>% select(PC1,PC2)
 site.sum <- site.sum  %>% bind_cols(pca1.scores)
 pca1.scores <- select(site.sum,Site,PC1,PC2)
-data <- data %>% left_join(pca1.scores,by="Site")
+data2 <- data %>% left_join(pca1.scores,by="Site")
+
+setwd("~/github/Scarid-Behavior/data")
+write.csv(data2,file = "data2.csv")
 ```
 ### Fish community variables
 ```{r}
-predictors2 <- site.sum %>% select(scar.BM,scar.DEN,carn.BM) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
-pca2 <- prcomp(na.omit(predictors2),center = TRUE,scale. = TRUE) 
+pred.fish <- site.sum %>% select(scar.BM,scar.DEN,carn.BM) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
+pca2 <- prcomp(na.omit(pred.fish),center = TRUE,scale. = TRUE) 
 summary(pca2)
 
 plot(pca2,type="l")
@@ -361,7 +362,7 @@ ggbiplot(pcavet, obs.scale = 1, var.scale = 1,ellipse = TRUE, circle = TRUE, alp
 ### Feeding rates
 ```{r}
 initial<-data%>%filter(Phase=="i") # for analysis with initial only
-lm_FR <- lm(FR~scar.BM*Species+carn.BM+Length.cm+PC1+PC2, data=data)
+lm_FR <- lm(FR~scar.BM*Species+Phase+carn.BM+Length.cm+PC1+PC2, data=data)
 summary(lm_FR)
 #vif(lm_FR)
 ```
@@ -370,7 +371,7 @@ summary(lm_FR)
 
 ### Fraction of time grazing
 ```{r}
-lm_g.frac <- lm(g.frac~Species*scar.BM+scar.DEN+carn.BM+Phase+Length.cm+PC1+PC2, data=data)
+lm_g.frac <- lm(g.frac~Species*scar.BM+Phase+scar.DEN+carn.BM+Phase+Length.cm+PC1+PC2, data=data)
 summary(lm_g.frac)
 ```
 *Notes: carn.BM and PC1 are strongest predictors of time spent grazing, scar.BM and phase are also significant. Slight significance of species, length, and species-scar.BM interaction*
@@ -391,7 +392,6 @@ lme_g.frac <- lme(g.frac~Phase+Length.cm+Species*scar.BM+scar.DEN+carn.BM+PC1+PC
 summary(lme_g.frac)
 ```
 *Notes: carn.BM and phase are strongest predictors, followed by scar.BM, PC1, and length. Also significant interaction between *
-
 
 # Model trials: species run individually
 ```{r}
@@ -418,6 +418,21 @@ lme_FR_rbp <- lme(FR~Phase+Length.cm+scar.BM+scar.DEN+carn.BM+PC1+PC2,data=rbp,r
 summary(lme_FR_rbp)
 ```
 *Notes: much more variable, less predictable. Maybe take out of overall analysis?*
+
+## GAMs
+
+```{r, echo=FALSE}
+vet<-data %>% filter(Species.Code=="qup")
+gamvet<-gam(FR~Phase+s(Length.cm)+s(scar.BM)+(carn.BM)+(PC1)+(PC2), family=gaussian(link=identity),data=vet, method="REML")
+summary(gamvet)
+plot(gamvet)
+```
+```{r, echo=FALSE}
+vir<-data %>% filter(Species.Code=="stop" & Site!="Snapper Point")
+gammvir<-gamm(FR~Phase+s(Length.cm)+s(scar.BM)+s(carn.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vir, random=list(Island=~1),method="REML")
+summary(gammvir)
+plot(gammvir)
+```
 ------------------------
 To Do as of Nov. 7
 * ~~incorporate PCs~~

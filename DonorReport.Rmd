@@ -1,0 +1,174 @@
+---
+title: "Effects of Fishing on Scarid Grazing Behavior in the Caribbean"
+author: "Molly Wilson"
+date: "1/5/2018"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    number_sections: yes
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+---
+
+```{r,message=FALSE,warning=FALSE, echo=FALSE}
+# set up
+library(rmarkdown)
+library(dplyr)
+library(tidyr)
+library(lazyeval)
+library(ggplot2)
+library(ellipse)
+library(RColorBrewer)
+library(ggbiplot)
+library(nlme)
+library(pls)
+library(mgcv)
+library(ggsignif)
+```
+```{r,message=FALSE,warning=FALSE, echo=FALSE}
+setwd("~/github/Scarid-Behavior/data")
+site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
+data <- read.csv("sumID2.csv", stringsAsFactors=FALSE) %>% select(Island,Site,Spearfishing,Diving,Species,Species.Code,Phase,Length.cm,g.frac,FR,BR,TDB,for.dur,for.bites,tot.BM,tot.DEN,scar.BM,herb.BM,scar.DEN,conspec.BM,conspec.DEN,carn.BM,carn.DEN,cover_CCA,cover_LC,cover_MA,cover_TA,canopy_MA,canopy_TA,rugosity,int.tot,int.con,int.hetscar,int.dam)
+vetvir <- data %>% filter(Species.Code!="rbp")
+vetvir20 <- vetvir %>% filter(Length.cm>=15 & Length.cm<=25)
+init20<- vetvir %>% filter(Length.cm>=15 & Length.cm<=25 & Phase=="i")
+vetvirAB <- vetvir %>% filter(Island!="Barbuda")
+vetvirAB20 <- vetvir %>% filter(Island!="Barbuda")
+vetvirAB20NS <- vetvirAB20 %>% filter(Site!="Snapper Point")
+vetvir20NS <- vetvir20 %>% filter(Site!="Snapper Point")
+vetvirNS <- vetvir %>% filter(Site!="Snapper Point")
+```
+
+# Introduction
+
+Herbivory is a critical ecosystem process on coral reefs. Algae competes with corals for space and light, but herbivores suppress algae and allow corals to grow, reproduce, and recruit new larvae. Up until a mass mortality event in the 1980s, the sea urchin *Diadema antillarum* was a primary herbivore on Caribbean reefs. Since their population crash, most herbivory has been carried out by grazing fish, primarily parrotfish or *Scaridae* species. As these fish are increasingly threatened by overfishing, their grazing impact has been reduced. While numerous studies have documented declines in parrotfish populations and the implications for coral-algal competition, few if any have investigated potential differences in parrotfish grazing behavior between degraded and pristine reef systems. Additionally, most existing data on parrotfish grazing behavior comes from relatively pristine reefs, which might skew our estimates of herbivory when applied to the many degraded systems throughout the Caribbean.
+
+While working on a reef survey project in Bonaire - an island in the Dutch Antilles considered to have some of the most pristine coral reefs in the Caribbean - I began to notice feeding differences between the parrotfish there and those I had been studying in Antigua, a more degraded reef system in the Eastern Caribbean. Numerous differences between degraded and pristine reef systems like Antigua and Bonaire could lead to variations in parrotfish grazing behavior. Shared vigilance theory would predict that parrotfish would have increased feeding in high abundance populations, where they have "safety in numbers" and can share the responsibility of looking out for predators. Conversely, competition between parrotfish might lead individual fish to spend less time feeding in high abundance populations because they have to spend more time defending feeding territories. The availability of algae might also influence feeding behavior, with parrotfish having to spend less time feeding if algae is abundant or of higher nutritional quality.
+  
+My research aims to document variations in grazing behavior across different reef conditions, testing for the effects of parrotfish abundance, predator abundance, and benthic condition on the amount of time parrotfish spend feeding, their bite rates, and the duration of their feeding bouts. Bonaire represents a relatively pristine Caribbean system, while Antigua has shifted to a more algal-dominated, low scarid state. I also conducted surveys in Barbuda, where a recent efforts to reduce parrotfish fishing may have interesting implications on grazing behavior. 
+
+# Field season summary
+
+In August of 2017, I set out to document parrotfish feeding behaviors in Antigua and Barbuda, two neighboring islands with historical overfishing and relatively degraded reefs systems. While parrotfish fishing continues in Antigua, a parrotfish fishing ban has recently been instated in Barbuda. Both of these islands would serve as comparisons to the pristine system in Bonaire that are more represenative of reef status in the larger Caribbean region.
+
+Thanks to generous funding awarded through the UCSB Research Accellerator Award, I was able to travel to Antigua along with a research assistant also working on her Ph.D. in marine ecoogy and fisheries management. The funds supplied us with SCUBA tanks, survey gear, boat fuel, a car rental to transport gear, and fuel and food to supply a four-day boat trip to Barbuda. During the three weeks we were in the field, we collected benthic and fish survey data at a total of nine sites which, in addition to providing data for this investigation, will also serve as valuable assessment and baseline data for future studies. Across the nine sites we coolected behavioral data from a total of 434 individual parrotfish, making a database of nearly 800 fish follows when integrated with the data I collected in Bonaire. While the data analysis is still ongoing, the preliminary results are extremely interesting. This research would not have been possible without the generous support of my Research Accellerator sponsor.
+
+## Data overview
+
+**Hypotheses**: parrotfish (scarids) have reduced grazing levels in heavily fished (low herbivore biomass) systems  
+* Scarid feeding rates increase with scarid biomass
+* Foray size (bites/foray) and duration increase with scarid biomass  
+
+Research components
+
+* 795 follows (2-min)
+* 13 sites across 3 islands (Antigua, Barbuda, Bonaire)
+    * Antigua: Rendezvous Bay, Turtle Bay, Windward Bay, Snappers Hole, Pillars of Hercules, Mermaid Gardens
+    * Barbuda: Pallaster East, Central, and West
+    * Bonaire: 18th Palm, Oil Slick, Karpata, Front Porch
+* 2 focal species in Bonaire (Scarus vetula, Sparisoma viride - dominant grazers), but added Sparisoma aurofrenatum in Antigua & Barbuda because of low densities of viride and vetula in some sites
+* Possibility to integrate fish follow data from FL Keys and St. Croix (Burkepile), and Belize and Bahamas (Mumby)
+
+Site-level predictor variables:
+
+* Fish community data: scarid biomass, scarid density, carnivore biomass
+* Benthic community data: percent coral cover, percent turf algal cover, percent macroalgal cover, turf canopy height, macroalgal canopy height
+* Rugosity
+
+Indv. fish-level predictor variables:
+
+* Species
+* Phase
+* Length
+
+Indv. fish-level response variables:
+
+* Fraction of time spent grazing (**g.frac**)
+* Bite rate while grazing (bites/sec) (**BR**)
+* Overall feeding rate (overall bite rate, bites/hr) (**FR**)
+* Total daily bites (**TDB**)
+* Foray size (bites per foray) (**for.bites**)
+* Foray duration (seconds) (**for.dur**)
+
+# Initial results
+
+## General grazing behavior
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvir20, aes(x=Island, y=FR)) + geom_boxplot() + facet_grid(.~Species) +
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Feeding Rate (bites/hr)",x="",title="Feeding Rate by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5))
+```
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+# do I really satisfy ANOVA assumptions?
+vet<- vetvir %>% filter(Species.Code=="qup")
+vir<- vetvir %>% filter(Species.Code=="stop")
+aovFRvet <- aov(FR ~ Island, data=vet) 
+#TukeyHSD(aovFRvet)
+aovFRvir <- aov(FR ~ Island, data=vir) 
+#TukeyHSD(aovFRvir)
+```
+
+
+Boxplots represent median (bar) and mean (diamond) feeding rates for *Scarus vetula* (Queen Parrotfish) and *Sparisoma viride* (Stoplight Parrotfish) in Antigua, Barbuda, and Bonaire. Average feeding rates (bites/hr) of *Scarus vetula*  in Bonaire were nearly three times that of Antigua and Barbuda (p<0.001). For *Sparisoma viride*, feeding rates in Bonaire and Barbuda were significantly higher than that of Bonaire (p<0.001).
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvir20, aes(x=Island, y=for.bites)) + geom_boxplot()  + labs(y="Bites per foray",x="",title="Grazing intensity by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species)
+```
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+# do I really satisfy ANOVA assumptions?
+aovforvet <- aov(for.dur ~ Island, data=vet) 
+#TukeyHSD(aovforvet)
+aovforvir <- aov(for.dur ~ Island, data=vir) 
+#TukeyHSD(aovforvir)
+```
+Grazing intensity, or the number of consecutive bites taken during a feeding foray, has significant implications for the benthic substrate. When parrotfish graze more intensely, they are more likely to crop algae and clear space for recruiting or competing corals. When shorter grazing forays are taken, bites are less concentrated and algae may not be sufficiently reduced in any given area. This plot shows the significant difference in grazing intensity of *Scarus vetula* individuals in Bonaire and of those in Antigua and Barbuda (p<0.001). For *Sparisoma viride*, grazing intensity in both Bonaire and Barbuda were significantly greater than in Antigua (p<0.001 and p<0.05, respectively). 
+
+
+## Grazing impact as a function of fish size
+
+*Due to the lack of larger fish in Barbuda, these length-based relationships focus on comparisons between Antigua and Bonaire*
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvirAB,aes(x=Length.cm,y=FR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rates by fish length") + theme_minimal() +labs(y="Feeding rates (bites/hr)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+```
+Overall feeding rates decrease with increasing fish length in both Antigua and Bonaire, as has been documented in previous studies. Larger individuals have larger bites, and therefore need to take fewer bites to obtain sufficient food. However, individuals of a given size are taking fewer bites in Antigua than in Bonaire. This is true for both *Scarus vetula* and *Sparisoma viride* individuals.
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvirAB,aes(x=Length.cm,y=BR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bite rate by fish length") + theme_minimal() +labs(y="Bite Rate (bites/sec)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+```
+As shown here, the differences in instananeous bite rates (bite rates while feeding) do not differ significantly between Antigua and Bonaire. For *Scarus vetula*, bite rates decrease with increasing fish size, while for *Sparisoma viride* they remain relatively constant across fish size.
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvirAB,aes(x=Length.cm,y=g.frac,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by fish length") + theme_minimal() +labs(y="Fraction of time",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+```
+While instantaneous bite rates may be fairly consistent across regions, the fraction of time an individual fish spends grazing is significantly higher in Bonaire than in Antigua. This accounts for the differences in overal feeding rate seen previously.
+
+
+## Grazing impact as a function of scarid biomass
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvir20NS,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+Overall feeding initially increases with scarid biomass and then eventually decreases as scarid biomass becomes highest. This trend is most pronounced with *Scarus vetula*, but can also be seen in the *Sparisoma viride* data. The initial positive relationship  may include social feeding/shared vigilance theory, in which feeding increases with biomass because individuals can share vigilance for predators and spend more time feeding, and/or an individual's feeding is triggered by the feeding of others. The eventual negative relationship between feeding and scarid biomass is likely a result of competition amongst scarids, which may impede feeding at high biomass levels.
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvir20NS,aes(x=scar.BM,y=g.frac))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by scarid biomass") + theme_minimal() +labs(y="Time fraction",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+The fraction of time spent grazing depicts this trend even more clearly. Individuals initially increase the amount of time they spend grazing with increasing scarid populations, but then decrease at high biomass levels, likely because they have to allocate more time to competitive activities or because it is more challenging for them to find ideal feeding substrates.
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(vetvir20NS,aes(x=scar.BM,y=BR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Bite rates by scarid biomass") + theme_minimal() +labs(y="Bite rate (bites/sec)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+Instantaneous bite rates of *Sparisoma viride* show no relationship with scarid biomass. *Scarus vetula* individuals initially increase bite rates at low scarid biomass levels, but then decrease/remain stable at higher biomasses. Individuals in low scarid biomass settings may feed more slowly if they feel the need to maintain vigilance while feeding.
+
+
+# Implications and next steps
+
+A key finding of this research is that scarid grazing behaviors can vary greatly between pristine and degraded reef ecosystems, which may have significant implications for their grazing impact and correspondingly on coral reef benthic health. In the case of *Scarus vetula*, individuals in Bonaire are taking an average of twice as many bites than in Antigua. These bites are also more concentrated, which may enhance benefits of grazing on corals. *Sparisoma viride* by nature have lower feeding rates than *Scarus vetula*, but still show elevated feeding rates in Bonaire and Barbuda as opposed to in Antigua.  Because Bonairian, Antiguan, and Barbudan reefs vary across numerous dimensions (e.g. scarid populations, carnivore populations, coral and algal communities, reef structure, fisher and recreational diver presence), it is outside the scope of this initial study to attribute changes in grazing behavior to any one particular factor or mechanism. However, the intial model reports the significant role played by scarid biomass and benthic condition. Further studies are required to determine the exact drivers and mechanisms. Additional research is also required to understand the relationship between feeding behaviors and benthic responses. While this study documents differences in grazing rates and temporal concentration, it does not measure potential differences in bite size, substrate consumed, or spatial distribution of bites. These are all components I hope to explore further during continued fieldwork in Antigua, Barbuda, and Bonaire.
+
+Furthermore, this study provides new grazing data that may help improve coral reef grazing models. While current models base feeding rate estimates on scarids surveyed in Bonaire, these estimates may not be very accurate in low biomass/high fishing systems like Antigua.
