@@ -3,14 +3,14 @@ title: "Effects of Fishing on Scarid Grazing Behavior in the Caribbean"
 author: "Molly Wilson"
 date: "1/5/2018"
 output:
-  pdf_document:
-    toc: yes
   html_document:
     number_sections: yes
     theme: united
     toc: yes
     toc_float: yes
     toc_depth: 3
+  pdf_document:
+    toc: yes
 ---
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
@@ -56,9 +56,7 @@ In January and August of 2017, I set out to document parrotfish feeding behavior
 
 With the support of generous funding awarded through the UCSB Research Accellerator Award, I was able to travel to Antigua along with a Julia Mason, a research assistant also working on her Ph.D. in marine ecoogy and fisheries management at Stanford University. The funds supplied us with SCUBA tanks, survey gear, boat fuel, a car rental to transport gear, and fuel and food to supply a four-day boat trip to Barbuda. During the three weeks we were in the field, we collected benthic and fish survey data at a total of nine sites which, in addition to providing data for this investigation, will also serve as valuable assessment and baseline data for future studies. Across the nine sites we coolected behavioral data from a total of 434 individual parrotfish, making a database of nearly 800 fish follows when integrated with the data I collected in Bonaire. While the data analysis is still ongoing, the preliminary results are extremely interesting. This research would not have been possible without the generous support of my Research Accellerator sponsor. 
 
-```{r, eval=FALSE}
 Thanks to generous funding awarded through the UCSB Research Accellerator Award, I was able to travel to Antigua along with a research assistant also working on her Ph.D. in marine ecoogy and fisheries management. The funds supplied us with SCUBA tanks, survey gear, boat fuel, a car rental to transport gear, and fuel and food to supply a four-day boat trip to Barbuda. During the three weeks we were in the field, we collected benthic and fish survey data at a total of nine sites which, in addition to providing data for this investigation, will also serve as valuable assessment and baseline data for future studies. Across the nine sites we coolected behavioral data from a total of 434 individual parrotfish, making a database of nearly 800 fish follows when integrated with the data I collected in Bonaire. While the data analysis is still ongoing, the preliminary results are extremely interesting. This research would not have been possible without the generous support of my Research Accellerator sponsor.
-```
 
 
 ## Data overview
