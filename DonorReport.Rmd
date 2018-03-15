@@ -27,6 +27,7 @@ library(nlme)
 library(pls)
 library(mgcv)
 library(ggsignif)
+library(car)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 setwd("~/github/Scarid-Behavior/data")
@@ -107,11 +108,16 @@ stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Feeding Rate
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 # do I really satisfy ANOVA assumptions?
 vet<- vetvir %>% filter(Species.Code=="qup")
-vir<- vetvir %>% filter(Species.Code=="stop")
 aovFRvet <- aov(FR ~ Island, data=vet) 
-#TukeyHSD(aovFRvet)
+TukeyHSD(aovFRvet)
+plot(aovFRvet, 2) # check normality
+leveneTest(FR ~ Island, data = vet) # check homogeneity of variance
+
+vir<- vetvir %>% filter(Species.Code=="stop")
 aovFRvir <- aov(FR ~ Island, data=vir) 
-#TukeyHSD(aovFRvir)
+TukeyHSD(aovFRvir)
+plot(aovFRvir, 2) # check normality
+leveneTest(FR ~ Island, data = vir) # check homogeneity of variance
 ```
 
 
@@ -123,9 +129,9 @@ ggplot(vetvir20, aes(x=Island, y=for.bites)) + geom_boxplot()  + labs(y="Bites p
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 # do I really satisfy ANOVA assumptions?
 aovforvet <- aov(for.dur ~ Island, data=vet) 
-#TukeyHSD(aovforvet)
+TukeyHSD(aovforvet)
 aovforvir <- aov(for.dur ~ Island, data=vir) 
-#TukeyHSD(aovforvir)
+TukeyHSD(aovforvir)
 ```
 Grazing intensity, or the number of consecutive bites taken during a feeding foray, has significant implications for the benthic substrate. When parrotfish graze more intensely, they are more likely to crop algae and clear space for recruiting or competing corals. When shorter grazing forays are taken, bites are less concentrated and algae may not be sufficiently reduced in any given area. This plot shows the significant difference in grazing intensity of *Scarus vetula* individuals in Bonaire and of those in Antigua and Barbuda (p<0.001). For *Sparisoma viride*, grazing intensity in both Bonaire and Barbuda were significantly greater than in Antigua (p<0.001 and p<0.05, respectively). 
 

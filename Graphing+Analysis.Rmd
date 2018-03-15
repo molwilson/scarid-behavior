@@ -164,6 +164,7 @@ ggplot(grazing,aes(value))+facet_wrap(~ key, scales = "free")+ geom_histogram(ae
  geom_density(alpha=.2, fill="#FF6666") 
 ```
 
+
 ### Corellations
 ```{r,echo=FALSE}
 grazing <- data %>% select(g.frac,FR,BR,for.dur,for.bites)
