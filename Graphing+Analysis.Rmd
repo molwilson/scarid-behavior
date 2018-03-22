@@ -278,12 +278,13 @@ ggplot(data,aes(x=scar.BM,y=int.scar))+facet_grid(.~Species)+geom_point(shape=19
 
 ### All predictors
 ```{r}
-predictors <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity,scar.BM,scar.DEN,carn.BM) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
+predictors <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity,scar.BM,scar.DEN,tot.BM) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
 pca <- prcomp(na.omit(predictors),center = TRUE,scale. = TRUE) 
 summary(pca)
 
 plot(pca,type="l")
 ggbiplot(pca, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, varname.size = 2) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal()
+ggsave("PCApred.png")
 ```
 ### Benthic variables
 ```{r, echo=FALSE}
