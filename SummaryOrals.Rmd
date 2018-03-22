@@ -40,6 +40,9 @@ vetvir20 <- vetvir %>% filter(Length.cm>=15 & Length.cm<=25)
 init20<- vetvir %>% filter(Length.cm>=15 & Length.cm<=25 & Phase=="i")
 vetvirAB <- vetvir %>% filter(Island!="Barbuda")
 vetvirAB20 <- vetvir %>% filter(Island!="Barbuda")
+vetvirABinit <- vetvirAB %>% filter(Phase=="i")
+
+
 vetvirAB20NS <- vetvirAB20 %>% filter(Site!="Snapper Point")
 vetvir20NS <- vetvir20 %>% filter(Site!="Snapper Point")
 vetvirNS <- vetvir %>% filter(Site!="Snapper Point")
@@ -84,6 +87,18 @@ pairs(~scar.BM+scar.DEN+carn.BM+cover_LC+cover_TA+canopy_MA+canopy_TA+rugosity, 
 
 # PCAs
 
+## All predictors
+```{r}
+predictors <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity,scar.BM,scar.DEN,carn.BM) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
+pca <- prcomp(na.omit(predictors),center = TRUE,scale. = TRUE) 
+summary(pca)
+
+plot(pca,type="l")
+ggbiplot(pca, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, varname.size = 2) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal()
+```
+
+## Benthic predictors
+
 ```{r, echo=FALSE}
 pred.benthic <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
 pca1 <- prcomp(na.omit(pred.benthic),center = TRUE,scale. = TRUE) 
@@ -102,25 +117,25 @@ write.csv(data2,file = "data2.csv")
 
 # Grazing differences between islands
 
-
-
 ## Feeding rates
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20, aes(x=Island, y=FR)) + geom_boxplot() + facet_grid(.~Species) +
-stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Feeding Rate (bites/hr)",x="",title="Feeding Rate by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5))
+vetvir20init<-vetvir20 %>% filter(Phase=="i")
+ggplot(vetvir20init, aes(x=Island, y=FR)) + geom_boxplot() +
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Feeding Rate (bites/hr)",x="",title="Feeding Rate by Island and Species (Initial Phase)") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species)
+ggsave("bp_fr.png")
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-vet<- vetvir %>% filter(Species.Code=="qup")
-aovFRvet <- aov(FR ~ Island, data=vet) 
+vet20init<- vetvir20init %>% filter(Species.Code=="qup")
+aovFRvet <- aov(FR ~ Island, data=vet20init) 
 summary.aov(aovFRvet) # significant differences
 TukeyHSD(aovFRvet)
 plot(aovFRvet, 2) # normally distributed
 leveneTest(FR ~ Island, data = vet) # homogeneity of variance
 
-vir<- vetvir %>% filter(Species.Code=="stop")
-aovFRvir <- aov(FR ~ Island, data=vir, white.adjust=TRUE) 
+vir20init<- vetvir20init %>% filter(Species.Code=="stop")
+aovFRvir <- aov(FR ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovFRvir) # significant differences
 TukeyHSD(aovFRvir)
 plot(aovFRvir, 2) # normally distributed
@@ -130,20 +145,21 @@ leveneTest(FR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
 ## Bite rates
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20, aes(x=Island, y=BR)) + geom_boxplot() + facet_grid(.~Species) +
-stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Bite Rate (bites/sec)",x="",title="Bite Rate while Grazing by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5))
+ggplot(vetvir20init, aes(x=Island, y=BR)) + geom_boxplot() +
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Bite Rate (bites/sec)",x="",title="Bite Rate while Grazing by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species)
+ggsave("bp_br.png")
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-vet<- vetvir %>% filter(Species.Code=="qup")
-aovBRvet <- aov(BR ~ Island, data=vet, white.adjust=TRUE) 
+aovBRvet <- aov(BR ~ Island, data=vet20init, white.adjust=TRUE) 
 summary.aov(aovBRvet) # no significant differences
-suplot(aovBRvet, 2) # fairly normal?
+TukeyHSD(aovBRvet)
+plot(aovBRvet, 2) # fairly normal?
 leveneTest(BR ~ Island, data = vet) # heteroskedastic - add white.adjust=TRUE
 
-vir<- vetvir %>% filter(Species.Code=="stop")
-aovBRvir <- aov(BR ~ Island, data=vir, white.adjust=TRUE) 
+aovBRvir <- aov(BR ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovBRvir) # no significant differences
+TukeyHSD(aovBRvet)
 plot(aovBRvir, 2) # fairly normal?
 leveneTest(BR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
 ```
@@ -151,19 +167,19 @@ leveneTest(BR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
 ## Fraction of time spent grazing
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20, aes(x=Island, y=g.frac)) + geom_boxplot() + facet_grid(.~Species) +
-stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Time fraction",x="",title="Fraction of Time Spent Grazing by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5))
+ggplot(vetvir20init, aes(x=Island, y=g.frac)) + geom_boxplot() +
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Time fraction",x="",title="Fraction of Time Spent Grazing by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species)
+ggsave("bp_gfrac.png")
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-vet<- vetvir %>% filter(Species.Code=="qup")
-aovBRvet <- aov(BR ~ Island, data=vet, white.adjust=TRUE) 
+aovBRvet <- aov(BR ~ Island, data=vet20init, white.adjust=TRUE) 
 summary.aov(aovBRvet) # no significant differences
 suplot(aovBRvet, 2) # fairly normal?
 leveneTest(BR ~ Island, data = vet) # heteroskedastic - add white.adjust=TRUE
 
 vir<- vetvir %>% filter(Species.Code=="stop")
-aovBRvir <- aov(BR ~ Island, data=vir, white.adjust=TRUE) 
+aovBRvir <- aov(BR ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovBRvir) # no significant differences
 plot(aovBRvir, 2) # fairly normal?
 leveneTest(BR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
@@ -172,18 +188,17 @@ leveneTest(BR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
 ## Grazing intensity
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20, aes(x=Island, y=for.bites)) + geom_boxplot()  + labs(y="Bites per foray",x="",title="Grazing intensity by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species)
+ggplot(vetvir20init, aes(x=Island, y=for.bites)) + geom_boxplot()  + labs(y="Bites per foray",x="",title="Grazing intensity by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species)
+ggsave("bp_gi.png")
 ```
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-vet<- vetvir %>% filter(Species.Code=="qup")
-aovGIvet <- aov(for.bites ~ Island, data=vet, white.adjust=TRUE) 
+aovGIvet <- aov(for.bites ~ Island, data=vet20init, white.adjust=TRUE) 
 summary.aov(aovGIvet) # significant differences
 TukeyHSD(aovGIvet)
 plot(aovGIvet, 2) # fairly normally distributed?
 leveneTest(for.bites ~ Island, data = vet) # heteroskedastic - add white.adjust=TRUE
 
-vir<- vetvir %>% filter(Species.Code=="stop")
-aovGIvir <- aov(for.bites ~ Island, data=vir, white.adjust=TRUE) 
+aovGIvir <- aov(for.bites ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovGIvir) # significant differences
 TukeyHSD(aovGIvir)
 plot(aovGIvir, 2) # fairly normally distributed?
@@ -196,37 +211,40 @@ leveneTest(for.bites ~ Island, data = vir) # heteroskedastic - add white.adjust=
 *Due to the lack of larger fish in Barbuda, these length-based relationships focus on comparisons between Antigua and Bonaire*
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
+
 ggplot(vetvirAB,aes(x=Length.cm,y=FR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Feeding rates by fish length") + theme_minimal() +labs(y="Feeding rates (bites/hr)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+ggsave("sp_length.png")
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvirAB,aes(x=Length.cm,y=BR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bite rate by fish length") + theme_minimal() +labs(y="Bite Rate (bites/sec)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+ggplot(vetvirABinit,aes(x=Length.cm,y=BR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bite rate by fish length") + theme_minimal() +labs(y="Bite Rate (bites/sec)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvirAB,aes(x=Length.cm,y=g.frac,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by fish length") + theme_minimal() +labs(y="Time fraction",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+ggplot(vetvirABinit,aes(x=Length.cm,y=g.frac,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by fish length") + theme_minimal() +labs(y="Time fraction",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvirAB,aes(x=Length.cm,y=for.bites,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Grazing intensity by fish length") + theme_minimal() +labs(y="Bites/foray",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
+ggplot(vetvirABinit,aes(x=Length.cm,y=for.bites,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Grazing intensity by fish length") + theme_minimal() +labs(y="Bites/foray",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
 ```
 
 ## Grazing impact as a function of scarid biomass
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20NS,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(vetvir20init,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+ggsave("sp_scarbm.png")
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20NS,aes(x=scar.BM,y=BR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Bite rate while grazing by scarid biomass") + theme_minimal() +labs(y="Bite rate (bites/sec)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(vetvir20init,aes(x=scar.BM,y=BR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Bite rate while grazing by scarid biomass") + theme_minimal() +labs(y="Bite rate (bites/sec)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20NS,aes(x=scar.BM,y=g.frac))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by scarid biomass") + theme_minimal() +labs(y="Time fraction",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(vetvir20init,aes(x=scar.BM,y=g.frac))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Fraction of time spent grazing by scarid biomass") + theme_minimal() +labs(y="Time fraction",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20NS,aes(x=scar.BM,y=for.bites))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Grazing intensity by scarid biomass") + theme_minimal() +labs(y="Bites/foray",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(vetvir20init,aes(x=scar.BM,y=for.bites))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Grazing intensity by scarid biomass") + theme_minimal() +labs(y="Bites/foray",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
 # GAMMs
@@ -236,8 +254,10 @@ ggplot(vetvir20NS,aes(x=scar.BM,y=for.bites))+facet_grid(.~Species)+geom_point(s
 ### Feeding rates
 ```{r,message=FALSE,warning=FALSE}
 vetinit <- vet %>% filter(Phase=="i")
+vetterm <- vet %>% filter(Phase=="t")
 gamm<-gamm(FR~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vetinit, random=list(Island=~1),method="REML")
 summary(gamm$gam) # only PC1 and PC2 are significant, scar.BM is almost significant
+AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
 
@@ -274,7 +294,7 @@ plot(gamm$gam,pages=1)
 
 ### Grazing intensity
 ```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(for.bites~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
+gamm<-gamm(for.bites~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vir, random=list(Island=~1),method="REML")
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```

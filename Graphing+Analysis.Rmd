@@ -424,7 +424,7 @@ summary(lme_FR_rbp)
 
 ```{r, echo=FALSE}
 vet<-data %>% filter(Species.Code=="qup")
-gamvet<-gam(FR~Phase+s(Length.cm)+s(scar.BM)+(carn.BM)+(PC1)+(PC2), family=gaussian(link=identity),data=vet, method="REML")
+gamvet<-gam(FR~Phase+s(Length.cm)+s(scar.BM)+(PC1)+(PC2), family=gaussian(link=identity),data=vet, method="REML")
 summary(gamvet)
 plot(gamvet)
 ```
