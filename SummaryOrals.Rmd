@@ -256,7 +256,7 @@ ggplot(vetvir20init,aes(x=scar.BM,y=for.bites))+facet_grid(.~Species)+geom_point
 vetinit <- vet %>% filter(Phase=="i")
 vetterm <- vet %>% filter(Phase=="t")
 gamm<-gamm(FR~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vetinit, random=list(Island=~1),method="REML")
-summary(gamm$gam) # only PC1 and PC2 are significant, scar.BM is almost significant
+summary(gamm$gam) # only PC1 and PC2 are significant, length slightly, scar.BM is not
 AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
@@ -279,8 +279,8 @@ plot(gamm$gam,pages=1)
 
 ### Feeding rates
 ```{r,message=FALSE,warning=FALSE}
-virinit<-vir%>% filter(Phase=="i")
-gamm<-gamm(FR~Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vir, random=list(Island=~1),method="REML")
+virinit <- data %>% filter(Species.Code=="stop" & Phase=="i")
+gamm<-gamm(FR~Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
