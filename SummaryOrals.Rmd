@@ -34,7 +34,8 @@ library(car)
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 setwd("~/github/Scarid-Behavior/data")
 site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
-data <- read.csv("sumID2.csv", stringsAsFactors=FALSE) %>% select(Island,Site,Spearfishing,Diving,Species,Species.Code,Phase,Length.cm,g.frac,FR,BR,TDB,for.dur,for.bites,tot.BM,tot.DEN,scar.BM,herb.BM,scar.DEN,conspec.BM,conspec.DEN,carn.BM,carn.DEN,cover_CCA,cover_LC,cover_MA,cover_TA,canopy_MA,canopy_TA,rugosity,int.tot,int.con,int.hetscar,int.dam)
+data <- read.csv("data2.csv", stringsAsFactors=FALSE)
+
 vetvir <- data %>% filter(Species.Code!="rbp")
 vetvir20 <- vetvir %>% filter(Length.cm>=15 & Length.cm<=25)
 init20<- vetvir %>% filter(Length.cm>=15 & Length.cm<=25 & Phase=="i")
@@ -89,12 +90,13 @@ pairs(~scar.BM+scar.DEN+carn.BM+cover_LC+cover_TA+canopy_MA+canopy_TA+rugosity, 
 
 ## All predictors
 ```{r}
-predictors <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity,scar.BM,scar.DEN,carn.BM) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
+predictors <- site.sum %>% select(cover_LC,cover_TA,canopy_MA,canopy_TA,rugosity,scar.BM,scar.DEN) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?)
 pca <- prcomp(na.omit(predictors),center = TRUE,scale. = TRUE) 
 summary(pca)
 
 plot(pca,type="l")
 ggbiplot(pca, obs.scale = 1, var.scale = 1, groups=site.sum$Island, ellipse = TRUE, circle = TRUE, varname.size = 2) + scale_color_manual(name="Island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal()
+ggsave("pca_pred.png")
 ```
 
 ## Benthic predictors
@@ -132,14 +134,14 @@ aovFRvet <- aov(FR ~ Island, data=vet20init)
 summary.aov(aovFRvet) # significant differences
 TukeyHSD(aovFRvet)
 plot(aovFRvet, 2) # normally distributed
-leveneTest(FR ~ Island, data = vet) # homogeneity of variance
+leveneTest(FR ~ Island, data = vet20init) # homogeneity of variance
 
 vir20init<- vetvir20init %>% filter(Species.Code=="stop")
 aovFRvir <- aov(FR ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovFRvir) # significant differences
 TukeyHSD(aovFRvir)
 plot(aovFRvir, 2) # normally distributed
-leveneTest(FR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
+leveneTest(FR ~ Island, data = vir20init) # heteroskedastic - add white.adjust=TRUE
 ```
 
 ## Bite rates
@@ -155,13 +157,13 @@ aovBRvet <- aov(BR ~ Island, data=vet20init, white.adjust=TRUE)
 summary.aov(aovBRvet) # no significant differences
 TukeyHSD(aovBRvet)
 plot(aovBRvet, 2) # fairly normal?
-leveneTest(BR ~ Island, data = vet) # heteroskedastic - add white.adjust=TRUE
+leveneTest(BR ~ Island, data = vet20init) # heteroskedastic - add white.adjust=TRUE
 
 aovBRvir <- aov(BR ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovBRvir) # no significant differences
 TukeyHSD(aovBRvet)
 plot(aovBRvir, 2) # fairly normal?
-leveneTest(BR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
+leveneTest(BR ~ Island, data = vir20init) # heteroskedastic - add white.adjust=TRUE
 ```
 
 ## Fraction of time spent grazing
@@ -175,14 +177,14 @@ ggsave("bp_gfrac.png")
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 aovBRvet <- aov(BR ~ Island, data=vet20init, white.adjust=TRUE) 
 summary.aov(aovBRvet) # no significant differences
-suplot(aovBRvet, 2) # fairly normal?
-leveneTest(BR ~ Island, data = vet) # heteroskedastic - add white.adjust=TRUE
+plot(aovBRvet, 2) # fairly normal?
+leveneTest(BR ~ Island, data = vet20init) # heteroskedastic - add white.adjust=TRUE
 
 vir<- vetvir %>% filter(Species.Code=="stop")
 aovBRvir <- aov(BR ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovBRvir) # no significant differences
 plot(aovBRvir, 2) # fairly normal?
-leveneTest(BR ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
+leveneTest(BR ~ Island, data = vir20init) # heteroskedastic - add white.adjust=TRUE
 ```
 
 ## Grazing intensity
@@ -196,13 +198,13 @@ aovGIvet <- aov(for.bites ~ Island, data=vet20init, white.adjust=TRUE)
 summary.aov(aovGIvet) # significant differences
 TukeyHSD(aovGIvet)
 plot(aovGIvet, 2) # fairly normally distributed?
-leveneTest(for.bites ~ Island, data = vet) # heteroskedastic - add white.adjust=TRUE
+leveneTest(for.bites ~ Island, data = vet20init) # heteroskedastic - add white.adjust=TRUE
 
 aovGIvir <- aov(for.bites ~ Island, data=vir20init, white.adjust=TRUE) 
 summary.aov(aovGIvir) # significant differences
 TukeyHSD(aovGIvir)
 plot(aovGIvir, 2) # fairly normally distributed?
-leveneTest(for.bites ~ Island, data = vir) # heteroskedastic - add white.adjust=TRUE
+leveneTest(for.bites ~ Island, data = vir20init) # heteroskedastic - add white.adjust=TRUE
 ```
 
 # Bivariate plots
@@ -247,14 +249,25 @@ ggplot(vetvir20init,aes(x=scar.BM,y=g.frac))+facet_grid(.~Species)+geom_point(sh
 ggplot(vetvir20init,aes(x=scar.BM,y=for.bites))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Grazing intensity by scarid biomass") + theme_minimal() +labs(y="Bites/foray",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
+# Competition
+
+```{r,echo=FALSE,warning=FALSE}
+ggplot(site.sum,aes(x=scar.BM,y=int.scar.mean_stop, shape=Island))+geom_point(size=3)+ggtitle("S. viride interaction frequency as a function of scarid biomass") + theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) + labs(x="Scarid Biomass (g/100m2)", y="Interactions with other scarids (per 2 min follow)") + geom_errorbar(aes(ymin=int.scar.mean_stop-int.scar.se_stop, ymax=int.scar.mean_stop+int.scar.se_stop))
+ggsave("comp_vir.png")
+```
+
+```{r,echo=FALSE,warning=FALSE}
+ggplot(site.sum,aes(x=scar.BM,y=int.scar.mean_qup, shape=Island))+geom_point(size=3)+ggtitle("S. vetula interaction frequency as a function of scarid biomass") + theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) + labs(x="Scarid Biomass (g/100m2)", y="Interactions with other scarids (per 2 min follow)") + geom_errorbar(aes(ymin=int.scar.mean_qup-int.scar.se_qup, ymax=int.scar.mean_qup+int.scar.se_qup))
+ggsave("comp_vet.png")
+```
+
 # GAMMs
 
 ## Scarus vetula
 
 ### Feeding rates
 ```{r,message=FALSE,warning=FALSE}
-vetinit <- vet %>% filter(Phase=="i")
-vetterm <- vet %>% filter(Phase=="t")
+vetinit <- data2 %>% filter(Species.Code=="qup" & Phase=="i")
 gamm<-gamm(FR~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vetinit, random=list(Island=~1),method="REML")
 summary(gamm$gam) # only PC1 and PC2 are significant, length slightly, scar.BM is not
 AIC(gamm$lme)
@@ -265,6 +278,7 @@ plot(gamm$gam,pages=1)
 ```{r,message=FALSE,warning=FALSE}
 gamm<-gamm(g.frac~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vetinit, random=list(Island=~1),method="REML")
 summary(gamm$gam) # PC1 and PC2 are most significant, length is significant, scar.BM is almost significant
+AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
 
@@ -272,6 +286,7 @@ plot(gamm$gam,pages=1)
 ```{r,message=FALSE,warning=FALSE}
 gamm<-gamm(for.bites~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vetinit, random=list(Island=~1),method="REML")
 summary(gamm$gam) # very low R2, only PC1 and scar.BM significant
+AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
 
@@ -279,22 +294,25 @@ plot(gamm$gam,pages=1)
 
 ### Feeding rates
 ```{r,message=FALSE,warning=FALSE}
-virinit <- data %>% filter(Species.Code=="stop" & Phase=="i")
-gamm<-gamm(FR~Phase+s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
-summary(gamm$gam)
+virinit <- data2 %>% filter(Species.Code=="stop" & Phase=="i")
+gamm<-gamm(FR~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
+summary(gamm$gam) #PC1, length, and scar.BM are significant predictors
+AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
 
 ### Fraction of time spent grazing
 ```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(g.frac~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
-summary(gamm$gam)
+gamm<-gamm(g.frac~s(Length.cm)+s(scar.BM)+s(PC1), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
+summary(gamm$gam) #PC1, length, and scar.BM are significant predictors
+AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
 
 ### Grazing intensity
 ```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(for.bites~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vir, random=list(Island=~1),method="REML")
-summary(gamm$gam)
+gamm<-gamm(for.bites~s(Length.cm)+s(scar.BM)+s(PC1), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
+summary(gamm$gam) # no significant predictors (scar.BM almost), low r2
+AIC(gamm$lme)
 plot(gamm$gam,pages=1)
 ```
