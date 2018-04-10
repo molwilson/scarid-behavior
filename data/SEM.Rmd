@@ -1,0 +1,62 @@
+---
+title: 'Structural '
+author: "Molly Wilson"
+date: "3/14/2018"
+output:
+  html_document:
+    number_sections: yes
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+---
+
+```{r,message=FALSE,warning=FALSE, echo=FALSE}
+# set up
+library(rmarkdown)
+library(dplyr)
+library(tidyr)
+library(lavaan)
+```
+
+```{r,message=FALSE,warning=FALSE, echo=FALSE}
+setwd("~/github/Scarid-Behavior/data")
+site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
+data <- read.csv("data2.csv", stringsAsFactors=FALSE)
+# add aglal indeces
+data <- data %>% mutate(index_MA = cover_MA*canopy_MA) %>% mutate(index_TA = cover_TA*canopy_TA)
+# remove Pallaster ?
+```
+
+```{r}
+# define model pathways
+model <- '
+    FR ~ Length.cm + Phase + Species + int.scar + RISK + NUTRITION
+    int.scar ~ scar.BM + cover_MA + cover_TA
+    rugosity ~ cover_LC
+    cover_LC ~ cover_MA + cover_TA
+    cover_TA ~ scar.BM
+    cover_MA ~ scar.BM
+    
+    RISK =~ scar.BM + rugosity
+    NUTRITION =~ cover_MA + cover_TA
+'
+
+fit <- sem(model, data=data)
+varTable(fit)
+summary(fit)
+semPaths(fit)
+```
+```{r}
+# define model pathways
+model <- '
+    FR ~ Length.cm + Phase + Species + int.scar
+
+'
+
+fit <- sem(model, data=data)
+summary(fit)
+semPaths(fit)
+```

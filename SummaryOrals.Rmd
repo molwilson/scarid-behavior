@@ -218,6 +218,19 @@ ggplot(vetvirAB,aes(x=Length.cm,y=FR,colour=Island))+facet_grid(.~Species)+geom_
 ggsave("sp_length.png")
 ```
 
+```{r}
+vetAB <- vetvirAB %>% filter(Species.Code=="qup")
+vet_fr <- lm(FR~Length.cm+Island,data=vetAB)
+anova(vet_fr)
+
+virAB <- vetvirAB %>% filter(Species.Code=="stop")
+vir_fr <- lm(FR~Length.cm+Island,data=virAB)
+anova(vir_fr)
+
+
+```
+
+
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 ggplot(vetvirABinit,aes(x=Length.cm,y=BR,colour=Island))+facet_grid(.~Species)+geom_point(shape=18)+scale_shape(solid=FALSE)+geom_smooth(method=lm, fullrange=FALSE)+ggtitle("Bite rate by fish length") + theme_minimal() +labs(y="Bite Rate (bites/sec)",x="Length (cm)") + theme(plot.title = element_text(hjust = 0.5))  + scale_color_manual(values=c("navy", "slategray2"))
 ```
