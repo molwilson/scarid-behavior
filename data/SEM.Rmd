@@ -19,6 +19,7 @@ library(rmarkdown)
 library(dplyr)
 library(tidyr)
 library(lavaan)
+library(semPlot)
 ```
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
@@ -27,13 +28,20 @@ site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
 data <- read.csv("data2.csv", stringsAsFactors=FALSE)
 # add aglal indeces
 data <- data %>% mutate(index_MA = cover_MA*canopy_MA) %>% mutate(index_TA = cover_TA*canopy_TA)
-# remove Pallaster ?
+# recode phase and species with dummy variables
+data <- data %>% mutate(spec.dum= 
+                          ifelse(Species.Code=="stop", 1, 
+                          (ifelse(Species.Code=="qup", 2,
+                          (ifelse(Species.Code=="rbp",3,NA)))))) %>%
+  mutate(phase.dum=ifelse(Phase=="i",1,2))
+
+
 ```
 
 ```{r}
 # define model pathways
 model <- '
-    FR ~ Length.cm + Phase + Species + int.scar + RISK + NUTRITION
+    FR ~ Length.cm + phase.dum + spec.dum+ int.scar + RISK + NUTRITION
     int.scar ~ scar.BM + cover_MA + cover_TA
     rugosity ~ cover_LC
     cover_LC ~ cover_MA + cover_TA
@@ -46,17 +54,7 @@ model <- '
 
 fit <- sem(model, data=data)
 varTable(fit)
-summary(fit)
+summary(fit, standardized=T, fit.measures=T,rsq=T)
 semPaths(fit)
 ```
-```{r}
-# define model pathways
-model <- '
-    FR ~ Length.cm + Phase + Species + int.scar
 
-'
-
-fit <- sem(model, data=data)
-summary(fit)
-semPaths(fit)
-```
