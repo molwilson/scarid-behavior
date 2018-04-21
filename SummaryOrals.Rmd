@@ -30,6 +30,7 @@ library(pls)
 library(mgcv)
 library(ggsignif)
 library(car)
+library(reshape2)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 setwd("~/github/Scarid-Behavior/data")
@@ -273,8 +274,8 @@ FR.vet20=3329-33*20
 FR.vet25=3329-33*25
 
 # Antigua feeding rate equation:
-ANUint.vir <- data2 %>% filter(Island=="Antigua"&Phase=="i"&Species.Code=="stop")
-ANUint.vet <- data2 %>% filter(Island=="Antigua"&Phase=="i"&Species.Code=="qup")
+ANUint.vir <- data %>% filter(Island=="Antigua"&Phase=="i"&Species.Code=="stop")
+ANUint.vet <- data %>% filter(Island=="Antigua"&Phase=="i"&Species.Code=="qup")
 FR.anu.vir <- lm(FR~Length.cm, data=ANUint.vir)
 FR.anu.vet <- lm(FR~Length.cm, data=ANUint.vet)
 summary(FR.anu.vet)
@@ -301,12 +302,22 @@ BS.vet20=4.013*10^-4*20^2
 BS.vet25=4.013*10^-4*25^2
 
 # adding FR and BS for each fish
-feedingrates.vir.ANU <- data2 %>% filter(Species.Code=="stop"&Phase=="i") %>% mutate(FR.ANU = 445-8*Length.cm) %>% mutate(FR.pub=1089-17*Length.cm-56) %>% mutate(BS=5.257*10^-4*Length.cm^2)
-feedingrates.vet.ANU <- data2 %>% filter(Species.Code=="qup"&Phase=="i") %>% mutate(FR.ANU = 1047-12*Length.cm) %>% mutate(FR.pub=3329-33*Length.cm) %>% mutate(BS=4.013*10^-4*Length.cm^2)
+feedingrates.vir.ANU <- data %>% filter(Species.Code=="stop"&Phase=="i"&Island=="Antigua") %>% mutate(FR.ANU = 445-8*Length.cm) %>% mutate(FR.pub=1089-17*Length.cm-56) %>% mutate(BS=5.257*10^-4*Length.cm^2)
+feedingrates.vet.ANU <- data %>% filter(Species.Code=="qup"&Phase=="i"&Island=="Antigua") %>% mutate(FR.ANU=1047-12*Length.cm) %>% mutate(FR.pub=3329-33*Length.cm) %>% mutate(BS=4.013*10^-4*Length.cm^2)
+
+
 feedingrates <- bind_rows(feedingrates.vir.ANU,feedingrates.vet.ANU) %>% mutate(areagrazed.ANU=FR.ANU*BS) %>% mutate(areagrazed.pub=FR.pub*BS)
 
-areagrazed.site <- feedingrates %>% group_by(Site) %>% summarise(areagrazed.site.ANU=sum(areagrazed.ANU))
+areagrazed.site <- feedingrates %>% group_by(Site) %>% dplyr::summarize(observed=sum(areagrazed.ANU)/1000,predicted=sum(areagrazed.pub)/1000)
+
+areagrazed.site <- as.data.frame(areagrazed.site)
+AG <- melt(areagrazed.site, id="Site") %>% dplyr::rename("feeding.rates"=variable, "area.grazed"=value)
 ```
+```{r}
+ggplot(data=AG, aes(x=Site, y=area.grazed, fill=feeding.rates)) +
+    geom_bar(stat="identity", position=position_dodge()) + theme_bw() + scale_fill_manual(values=c("black","lightslategrey")) + labs(y="Area Grazed (m2)")
+```
+
 
 
 # Competition
