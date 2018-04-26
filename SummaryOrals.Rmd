@@ -31,6 +31,7 @@ library(mgcv)
 library(ggsignif)
 library(car)
 library(reshape2)
+library(EnvStats)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 setwd("~/github/Scarid-Behavior/data")
@@ -125,10 +126,10 @@ write.csv(data2,file = "data2.csv")
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 vetvir20init<-vetvir20 %>% filter(Phase=="i")
-
 samples <- vetvir20init %>% dplyr::group_by(Island,Species) %>% dplyr::summarise(n=n())
+
 ggplot(vetvir20init, aes(x=Island, y=FR)) + geom_boxplot() +
-stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Feeding Rate (bites/hr)",x="",title="Feeding Rate") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic"))
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Feeding Rate (bites/hr)",x="",title="Feeding rates by island and species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic")) + stat_n_text()
 ggsave("bp_fr.png")
 ```
 
@@ -152,7 +153,7 @@ leveneTest(FR ~ Island, data = vir20init) # heteroskedastic - add white.adjust=T
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 ggplot(vetvir20init, aes(x=Island, y=BR)) + geom_boxplot() +
-stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Bite Rate (bites/sec)",x="",title="Bite Rate while Grazing by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic"))
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Bite Rate (bites/sec)",x="",title="Bite rates by island and species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic")) + stat_n_text()
 ggsave("bp_br.png")
 ```
 
@@ -174,7 +175,7 @@ leveneTest(BR ~ Island, data = vir20init) # heteroskedastic - add white.adjust=T
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
 ggplot(vetvir20init, aes(x=Island, y=g.frac)) + geom_boxplot() +
-stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Time fraction",x="",title="Fraction of Time Spent Grazing by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic"))
+stat_summary(fun.y = mean, geom="point", shape=5, size=3) + labs(y="Time fraction",x="",title="Fraction of time spent grazing by island and species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic")) + stat_n_text()
 ggsave("bp_gfrac.png")
 ```
 
@@ -194,7 +195,7 @@ leveneTest(BR ~ Island, data = vir20init) # heteroskedastic - add white.adjust=T
 ## Grazing intensity
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20init, aes(x=Island, y=for.bites)) + geom_boxplot()  + labs(y="Bites per foray",x="",title="Grazing intensity by Island and Species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic"))
+ggplot(vetvir20init, aes(x=Island, y=for.bites)) + geom_boxplot()  + labs(y="Bites per foray",x="",title="Grazing intensity by island and species") + theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) + facet_grid(.~Species) + theme(strip.text = element_text(face = "italic")) + stat_n_text()
 ggsave("bp_gi.png")
 ```
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
@@ -250,7 +251,8 @@ ggplot(vetvirABinit,aes(x=Length.cm,y=for.bites,colour=Island))+facet_grid(.~Spe
 ## Grazing impact as a function of scarid biomass
 
 ```{r, message=FALSE,warning=FALSE,echo=FALSE}
-ggplot(vetvir20init,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)",x="Scarid Biomass (g/100m2)") + theme(plot.title = element_text(hjust = 0.5)) + theme(strip.text = element_text(face = "italic"))
+ggplot(vetvir20init,aes(x=scar.BM,y=FR))+facet_grid(.~Species)+geom_point(shape=18)+geom_smooth(method=loess, fullrange=FALSE)+ggtitle("Feeding rate by scarid biomass") + theme_minimal() +labs(y="Feeding rate (bites/hr)") + labs(x=expression(Scarid~Biomass~(g/100~m^2))) + theme(plot.title = element_text(hjust = 0.5)) + theme(strip.text = element_text(face = "italic"))
+
 ggsave("sp_scarbm.png")
 ```
 
@@ -268,11 +270,12 @@ ggplot(vetvir20init,aes(x=scar.BM,y=for.bites))+facet_grid(.~Species)+geom_point
 # Comparisons with published data
 ```{r}
 # calculate predicted feeding rates from Bruggemann/Bozec for boxplot reference lines:
-FR.vir20=1089-17*20-56
 FR.vet20=3329-33*20
+FR.vir20=1089-17*20-56
 ```
+
 ```{r}
-# Antigua feeding rate equation:
+# Observed Antigua feeding rate equation:
 ANUinit.vir <- data %>% filter(Island=="Antigua"&Phase=="i"&Species.Code=="stop")
 ANUinit.vet <- data %>% filter(Island=="Antigua"&Phase=="i"&Species.Code=="qup")
 FR.anu.vir <- lm(FR~Length.cm, data=ANUinit.vir)
@@ -281,14 +284,9 @@ summary(FR.anu.vet)
 #FR.anu.vet = 1047-12*L
 summary(FR.anu.vir)
 #FR.anu.vir = 445-8*L
-
-# references (20cm, initial phase)
-FR.vet20ANU=1047-12*20
-FR.vir20ANU=445-8*20
-
 ```
 ```{r}
-# Bonaire feeding rate equation:
+# Observed Bonaire feeding rate equation:
 BONinit.vir <- data %>% filter(Island=="Bonaire"&Phase=="i"&Species.Code=="stop")
 BONinit.vet <- data %>% filter(Island=="Bonaire"&Phase=="i"&Species.Code=="qup")
 FR.bon.vir <- lm(FR~Length.cm, data=BONinit.vir)
@@ -298,31 +296,47 @@ summary(FR.bon.vet)
 #FR.bon.vet = 1347+10*L
 summary(FR.bon.vir)
 #FR.bon.vir = 1057-15*L
-
-# references (20cm, initial phase)
-FR.vet20BON=1347+10*20
-FR.vir20BON=1057-15*20
 ```
 
+## adding predicted feeding rates and bite sizes from standard equations
+Bite sizes as predicted by Bruggemann/Bozec:
+*S. vetula*: BS.vet=4.013*10^-4*L^2
+*S. viride*: BS.vir=5.257*10^-4*L^2
+
+Feeding rates as predicted by Bruggemann/Bozec
+*S. vetula*: FR.vet=3329-33*L
+*S. viride*: FR.vir=1089-17*L-56 (extra term because phase modifier is not used here (i=1))
+
+Feeding rates as predicted by observed Bonaire data:
+*S. vetula*: FR.bon.vet = 1347+10*L
+*S. viride*: FR.bon.vir = 1057-15*L
+
+Feeding rates as predicted by observed Antigua data:
+*S. vetula*: FR.anu.vet = 1047-12*L
+*S. viride*: FR.anu.vir = 445-8*L
+
+## adding predicted feeding rates from observed relationships
+
 ```{r}
-# calculate predicted bite sizes from Bruggemann/Bozec
-BS.vir20=5.257*10^-4*20^2
-BS.vet20=4.013*10^-4*20^2
+# Antigua
+feedingrates.vet.ANU <- data %>% filter(Species.Code=="qup"&Phase=="i"&Island=="Antigua") %>% mutate(FR.personal=1047-12*Length.cm) %>% mutate(FR.standard=3329-33*Length.cm) %>% mutate(BS=4.013*10^-4*Length.cm^2)
+feedingrates.vir.ANU <- data %>% filter(Species.Code=="stop"&Phase=="i"&Island=="Antigua") %>% mutate(FR.personal = 445-8*Length.cm) %>% mutate(FR.standard=1089-17*Length.cm-56) %>% mutate(BS=5.257*10^-4*Length.cm^2)
 
-# adding FR and BS for each fish
-feedingrates.vir.ANU <- data %>% filter(Species.Code=="stop"&Phase=="i"&Island=="Antigua") %>% mutate(FR.ANU = 445-8*Length.cm) %>% mutate(FR.pub=1089-17*Length.cm-56) %>% mutate(BS=5.257*10^-4*Length.cm^2)
-feedingrates.vet.ANU <- data %>% filter(Species.Code=="qup"&Phase=="i"&Island=="Antigua") %>% mutate(FR.ANU=1047-12*Length.cm) %>% mutate(FR.pub=3329-33*Length.cm) %>% mutate(BS=4.013*10^-4*Length.cm^2)
+# Bonaire
+feedingrates.vet.BON <- data %>% filter(Species.Code=="qup"&Phase=="i"&Island=="Bonaire") %>% mutate(FR.personal=1047-12*Length.cm) %>% mutate(FR.standard=1347+10*Length.cm) %>% mutate(BS=4.013*10^-4*Length.cm^2)
+feedingrates.vir.BON <- data %>% filter(Species.Code=="stop"&Phase=="i"&Island=="Bonaire") %>% mutate(FR.personal = 1057-15*Length.cm) %>% mutate(FR.standard=1089-17*Length.cm-56) %>% mutate(BS=5.257*10^-4*Length.cm^2)
 
-feedingrates <- bind_rows(feedingrates.vir.ANU,feedingrates.vet.ANU) %>% mutate(areagrazed.ANU=FR.ANU*BS) %>% mutate(areagrazed.pub=FR.pub*BS)
+feedingrates <- bind_rows(feedingrates.vir.ANU,feedingrates.vet.ANU,feedingrates.vir.BON,feedingrates.vet.BON) %>% mutate(AG.personal=FR.personal*BS) %>% mutate(AG.standard=FR.standard*BS)
 
-areagrazed.site <- feedingrates %>% group_by(Site) %>% dplyr::summarize(personal=sum(areagrazed.ANU)/1000,published=sum(areagrazed.pub)/1000)
+areagrazed.site <- feedingrates %>% group_by(Site,Island) %>% dplyr::summarize(personal=sum(AG.personal)/1000,standard=sum(AG.standard)/1000)
 
 areagrazed.site <- as.data.frame(areagrazed.site)
-AG <- melt(areagrazed.site, id="Site") %>% dplyr::rename("feeding.rates"=variable, "area.grazed"=value)
+AG <- melt(areagrazed.site, id=c("Site","Island")) %>% dplyr::rename("data.source"=variable, "area.grazed"=value)
 ```
 ```{r}
-ggplot(data=AG, aes(x=Site, y=area.grazed, fill=feeding.rates)) +
-    geom_bar(stat="identity", position=position_dodge()) + theme_bw() + scale_fill_manual(values=c("black","lightslategrey"),name="Data Source",breaks=c("personal", "published"), labels=c("Fished", "Unfished")) + labs(y=expression(Area~Grazed~(m^2/hr)), title=("Grazing impact of Antiguan scarids with observed vs. predicted feeding rates"))
+AG.ANU <- AG %>% filter(Island=="Antigua")
+ggplot(data=AG.ANU, aes(x=Site, y=area.grazed, fill=data.source)) +
+    geom_bar(stat="identity", position=position_dodge()) + theme_bw() + scale_fill_manual(values=c("black","lightslategrey"),name=expression(paste("Feeding rates \n obtained from:")),breaks=c("personal", "standard"), labels=c("fished data", "unfished data")) + labs(y=expression(Area~Grazed~(m^2/hr)), title=("Predicted site-level grazing impact of Antiguan scarids")) + theme(plot.title = element_text(hjust = 0.5)) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave("areagrazed.png")
 ```
 
@@ -347,6 +361,7 @@ ggsave("comp_vet.png")
 ### Feeding rates
 ```{r,message=FALSE,warning=FALSE}
 vetinit <- data2 %>% filter(Species.Code=="qup" & Phase=="i")
+vetinit <- vetinit %>% dplyr::rename(PC1='PC1.x',PC2='PC2.x')
 gamm<-gamm(FR~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=vetinit, random=list(Island=~1),method="REML")
 summary(gamm$gam) # only PC1 and PC2 are significant, length slightly, scar.BM is not
 AIC(gamm$lme)
@@ -374,6 +389,7 @@ plot(gamm$gam,pages=1)
 ### Feeding rates
 ```{r,message=FALSE,warning=FALSE}
 virinit <- data2 %>% filter(Species.Code=="stop" & Phase=="i")
+virinit <- virinit %>% dplyr::rename(PC1='PC1.x',PC2='PC2.x')
 gamm<-gamm(FR~s(Length.cm)+s(scar.BM)+s(PC1)+s(PC2), family=gaussian(link=identity),data=virinit, random=list(Island=~1),method="REML")
 summary(gamm$gam) #PC1, length, and scar.BM are significant predictors
 AIC(gamm$lme)
