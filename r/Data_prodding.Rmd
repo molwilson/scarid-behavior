@@ -20,21 +20,18 @@ Notes 11/11:
 library(startR)
 library(here)
 library(tidyverse)
-library(RColorBrewer)
+#library(RColorBrewer)
 library(corrplot)
+library(ggplot2)
+
 library(nlme)
-library(pls)
-library(factoextra)
+library(gamm4)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
   select(-X)
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X)
-
-# stop<-sum_id%>%filter(species_code=="stop")
-# qup<-sum_id%>%filter(species_code=="qup")
-# rbp<-sum_id%>%filter(species_code=="rbp")
 ```
 
 # Data overview:
@@ -45,9 +42,23 @@ sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
 - site level factors (benthic, fish, and rugosity) assessed at each of the 13 sites
 
 ```{r,echo=FALSE}
-sample <- group_by(sum_id, site, species, phase) %>% summarize(n=n())
-barplot(table(sum_id$species, sum_id$site), main="Sample size by phase and species",
-   legend = rownames(counts), beside=TRUE, las=2)
+sample <- group_by(sum_id, site, species, phase, island) %>% summarize(n=n())
+
+ggplot(sum_id, aes(site)) +
+        facet_grid(island~species) +
+        geom_bar(aes(fill = phase), position = "dodge") +
+        scale_fill_manual(values = c("gray", "slategray2")) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# playing with plot options...
+ggplot(data = sample, aes(x = site, y = n, fill = phase)) + 
+    geom_bar(stat = "identity", width = 1, position = "dodge") +
+    facet_wrap(~island, strip.position = "bottom", scales = "free_x") +
+    theme(panel.spacing = unit(0, "lines"), 
+         strip.background = element_blank(),
+         strip.placement = "outside") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 # Examing variable distributions and relationships
@@ -145,7 +156,6 @@ ggplot(grazing,aes(value)) +
   geom_histogram(aes(y=..density..), colour="black", fill="white") +
   geom_density(alpha=.2, fill="#FF6666") 
 ```
-
 
 ### Corellations
 ```{r,echo=FALSE}
@@ -317,101 +327,55 @@ ggplot(sum_id,aes(x=scar_bm,y=int_scar)) +
 # PCAs -->
 *Do I need to normalize my variables pre-pcA? Currently just scaled, except for grazing response variables which are log-transformed* -->
 
-## Predictors -->
+## Predictors
 
-### All predictors -->
 ```{r}
-pca <- prcomp(na.omit(sum_site %>% 
+pca_pred <- prcomp(na.omit(sum_site %>% 
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
               select(lc_cover,ta_cover,ma_canopy,ta_canopy,rugosity,scar_bm,scar_den,tot_bm)),
-  center = TRUE,scale. = TRUE)
-summary(pca)
+  center = T,scale = T)
 
-plot(pca,type="l")
+summary(pca_pred)
+plot(pca_pred,type="l")
 
-fviz_pca_biplot(pca,
-                col.var = "black",
-                col.ind = as.factor(sum_site$island), # color by groups
-                palette = c("#00AFBB", "#E7B800", "#FC4E07"),
-                addEllipses = T, ellipse.level=0.95,
-                ellipse.type = "confidence",
-                label = "var",
-                legend.title = "Groups",
-                repel = T
-                ) +
-  scale_color_brewer(palette="Dark")+
-  theme_minimal()
+autoplot(pca_pred, data = sum_site, colour = 'island',
+         loadings = T, loadings.colour = 'gray',
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black', 
+            loadings.label.repel = T) +
+    scale_color_manual(name="island", values=c("navy", "darkseagreen", "slategray2")) + 
+    theme(legend.direction = 'horizontal', legend.position = 'top') +
+    theme_minimal()
 
-fviz_mca_biplot(pca, 
-  habillage = sum_id$island, addEllipses = TRUE,
-  label = "var", shape.var = 15) +
-  scale_color_brewer(palette="Dark3")+
-  theme_minimal()
+# add PC1 and PC2 as variables in dataset
+sum_site_pca1 <- sum_site %>% 
+  bind_cols(as.data.frame(pca_pred$x) %>% 
+           select(PC1,PC2)) %>%
+  clean_names(case="old_janitor")
+sum_id_pca1 <- sum_id %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
+write.csv(sum_id_pca1,file=here("data/sum_id_pca1.csv"))
 ```
 
-<!-- ### Benthic variables -->
-<!-- ```{r, echo=FALSE} -->
-<!-- pred.benthic <- sum_site %>% select(lc_cover,ta_cover,ma_canopy,ta_canopy,rugosity) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?) -->
-<!-- pca1 <- prcomp(na.omit(pred.benthic),center = TRUE,scale. = TRUE)  -->
+## Response variables
 
-<!-- # add pc1 and pc2 as variables in dataset -->
-<!-- pca1.scores <- as.data.frame(pca1$x) %>% select(pc1,pc2) -->
-<!-- sum_site <- sum_site  %>% bind_cols(pca1.scores) -->
-<!-- pca1.scores <- select(sum_site,site,pc1,pc2) -->
-<!-- sum_id_pca <- sum_id %>% left_join(pca1.scores,by="site") -->
+```{r}
+pca_resp <- prcomp(na.omit(sum_id %>% 
+              select(g_frac,fr,br)), 
+  center = T,scale = T)
 
-<!-- write.csv(sum_id_pca,file = here("data/sum_id_pca.csv")) -->
-<!-- ``` -->
-<!-- ### Fish community variables -->
-<!-- ```{r} -->
-<!-- pred.fish <- sum_site %>% select(scar_bm,scar_den,carn_bm) # should it matter if I use site level summary data vs. full follow dataset (where site-level data has been joined?) -->
-<!-- pca2 <- prcomp(na.omit(pred.fish),center = TRUE,scale. = TRUE)  -->
-<!-- summary(pca2) -->
+summary(pca_resp)
+plot(pca_resp,type="l")
 
-<!-- plot(pca2,type="l") -->
-<!-- ggbiplot(pca2, obs.scale = 1, var.scale = 1, groups=sum_site$island, ellipse = TRUE, circle = TRUE, loadings.label.repel=TRUE) + scale_color_manual(name="island", values=c("navy", "darkseagreen", "slategray2")) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() -->
+autoplot(pca_resp, data = sum_id, colour = "island",
+         loadings = T, loadings.colour = 'gray',
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black', 
+            loadings.label.repel = T) +
+    scale_color_manual(name="island", values=c("navy", "darkseagreen", "slategray2")) + 
+    theme(legend.direction = 'horizontal', legend.position = 'top') +
+    theme_minimal()
 
-<!-- ``` -->
-
-
-<!-- ## Response variables -->
-
-<!-- ### Grazing behaviors -->
-<!-- *log transform increases P1 explained variance here...* -->
-<!-- *Currently for_dur has several NA values (for individuals that didn't graze)... I am omitting that variable for now because I don't want to omit non-grazing individuals (instead would like to keep them as grazing=0* -->
-<!-- ```{r} -->
-<!-- response <- data %>% select(g_frac,tdb,br) -->
-<!-- log.vars5 <- log(response[,1:3]) -->
-<!-- pca3 <- prcomp(na.omit(response),center = TRUE,scale. = TRUE)  -->
-<!-- summary(pca3) -->
-<!-- plot(pca3,type="l") -->
-<!-- ggbiplot(pca3, obs.scale = 1, var.scale = 1, groups=data$island,shape=data$island,ellipse = TRUE, circle = TRUE, alpha=0.8,varname.size = 5) + theme_minimal() + scale_color_manual(name="island", values=c("navy", "darkseagreen", "slategray2")) + labs(title="Grazing behaviors by island") + theme(plot.title = element_text(hjust = 0.5)) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- response <- data %>% select(g_frac,fr,br) -->
-<!-- log.vars5 <- log(response[,1:3]) -->
-<!-- pca3 <- prcomp(na.omit(response),center = TRUE,scale. = TRUE)  -->
-<!-- summary(pca3) -->
-<!-- plot(pca3,type="l") -->
-<!-- ggbiplot(pca3, obs.scale = 1, var.scale = 1,ellipse = TRUE, circle = TRUE, alpha=0.4,varname.size = 5) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() +geom_point(aes(col=data$scar_bm)) + labs(col="Scarid Biomass (g/100m2)", title="Grazing Behaviors by Scarid Biomass") + theme(plot.title = element_text(hjust = 0.5)) -->
-<!-- ``` -->
-
-<!-- ```{r,echo=FALSE} -->
-<!-- vir <- data %>% filter(species_code=="stop") -->
-<!-- response <- vir %>% select(g_frac,fr,br) -->
-<!-- log.vars5 <- log(response[,1:3]) -->
-<!-- pcavir <- prcomp(na.omit(response),center = TRUE,scale. = TRUE)  -->
-<!-- ggbiplot(pcavir, obs.scale = 1, var.scale = 1,ellipse = TRUE, circle = TRUE, alpha=1,varname.size = 5) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() + labs(col="Scarid Biomass (g/100m2)", title="Grazing Behaviors by Scarid Biomass") + theme(plot.title = element_text(hjust = 0.5)) +geom_point(aes(colour=vir$scar_bm)) -->
-<!-- ``` -->
-<!-- ```{r,echo=FALSE} -->
-<!-- vet <- data %>% filter(species_code=="qup") -->
-<!-- response <- vet %>% select(g_frac,fr,br) -->
-<!-- log.vars5 <- log(response[,1:3]) -->
-<!-- pcavet <- prcomp(na.omit(response),center = TRUE,scale. = TRUE)  -->
-<!-- ggbiplot(pcavet, obs.scale = 1, var.scale = 1,ellipse = TRUE, circle = TRUE, alpha=1,varname.size = 5) + theme(legend.direction = 'horizontal', legend.position = 'top') + theme_minimal() + labs(col="Scarid Biomass (g/100m2)", title="Grazing Behaviors by Scarid Biomass") + theme(plot.title = element_text(hjust = 0.5)) +geom_point(aes(colour=vet$scar_bm)) -->
-<!-- ``` -->
-
+# autoplot doesn't like when I add it for_dur or for_bites (NA values?)
+```
 # Model trials
 
 -site-level predictors: scar_bm,scar_den,carn_bm,benthic (pc1,pc2)
@@ -421,116 +385,40 @@ fviz_mca_biplot(pca,
 -random effects: island
 -response variables: g_frac, br (?), and fr (run separately)
 
-## Basic lm (to assess predictors of interest)
+## Basic lm 
 ```{r}
-initial<-data%>%filter(phase=="i") # for analysis with initial only
-lm_fr <- lm(fr~scar_bm*species+phase+carn_bm+length_cm+pc1+pc2, data=data)
-summary(lm_fr) # predicting feeding rate of initial phase only, all species
-#vif(lm_fr)
+lm_fr <- lm(fr~species+phase+length_cm+pc1+pc2, data=filter(sum_id_pca1, species_code!="rbp"))
+summary(lm_fr) 
 ```
-*Notes: nearly everything is significant? Significant interaction between scar_bm and species for Spar. viride. carn_bm and scar_bm are highly positively correlated (~0.86) - is it ok to include both?*
-*R2 goes up slightly with initial only*
-
-```{r}
-lm_g_frac <- lm(g_frac~species*scar_bm+phase+scar_den+carn_bm+phase+length_cm+pc1+pc2, data=data)
-summary(lm_g_frac)
-```
-*Notes: carn_bm and pc1 are strongest predictors of time spent grazing, scar_bm and phase are also significant. Slight significance of species, length, and species-scar_bm interaction*
 
 ## Mixed effects models
 - random effect: island
 
 ```{r}
-lme_fr <- lme(fr~phase+length_cm+species*scar_bm+scar_den+carn_bm+pc1+pc2,data=data,random=~1|island, na.action = na.omit)
+lme_fr <- lme(fr~phase+length_cm+species+pc1+pc2,data=filter(sum_id_pca1, species_code!="rbp"),random=~1|island, na.action = na.omit)
 summary(lme_fr)
 ```
-*Notes: nearly everything is significant except for pc2 and scar_den?*
-```{r}
-lme_g_frac <- lme(g_frac~phase+length_cm+species*scar_bm+scar_den+carn_bm+pc1+pc2,data=data,random=~1|island, na.action = na.omit)
-summary(lme_g_frac)
-```
-```{r}
-lme_fr_stop <- lme(fr~phase+length_cm+scar_bm+scar_den+carn_bm+pc1+pc2,data=stop,random=~1|island, na.action = na.omit)
-summary(lme_fr_stop)
-```
-*Notes: carn_bm and length are signifigant predictors*
-```{r}
-lme_fr_qup <- lme(fr~phase+length_cm+scar_bm+scar_den+carn_bm+pc1+pc2,data=qup,random=~1|island, na.action = na.omit)
-summary(lme_fr_qup)
-```
-*Notes: pc1 is strongest (magnitude) predictors. Also significant are phase, carn_bm and scar_den*
-# Model trials: species run individually
-
-## Feeding rates
-```{r}
-lme_fr_stop <- lme(fr~phase+length_cm+scar_bm+scar_den+carn_bm+pc1+pc2,data=stop,random=~1|island, na.action = na.omit)
-summary(lme_fr_stop)
-```
-*Notes: carn_bm and length are signifigant predictors*
-
-```{r}
-lme_fr_qup <- lme(fr~phase+length_cm+scar_bm+scar_den+carn_bm+pc1+pc2,data=qup,random=~1|island, na.action = na.omit)
-summary(lme_fr_qup)
-```
-*Notes: pc1 is strongest (magnitude) predictors. Also significant are phase, carn_bm and scar_den*
 
 ## GAMs
 ```{r, echo=FALSE}
-gam<-gam(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=data, method="REML")
+gam<-gam(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),sum_id_pca1=data, method="REML")
 summary(gam)
 plot(gam,pages=1)
-```
-```{r, echo=FALSE}
-gamvet<-gam(fr~phase+s(length_cm)+s(scar_bm)+(carn_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=vet, method="REML")
-summary(gamvet)
-plot(gamvet,pages=1)
-```
-```{r, echo=FALSE}
-vir<-data %>% filter(species_code=="stop" & site!="Snapper Point")
-gamvir<-gam(fr~phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=vir,method="REML")
-summary(gamvir)
-plot(gamvir,pages=1)
 ```
 
 ## GAMMs
 
-### Feeding rate (bites per hour)
 ```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=data, random=list(island=~1),method="REML")
+gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="qup"), random=list(island=~1),method="REML")
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
 ```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(fr~phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=vet, random=list(island=~1),method="REML")
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
-```
-```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(fr~phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=vir, random=list(island=~1),method="REML")
+gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="stop"), random=list(island=~1),method="REML")
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
 
-Most of variation is explained by species - for individual species models R2 values are very low (~0.3)
-
-### Fraction of time spent grazing
-```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(g_frac~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=data, random=list(island=~1),method="REML")
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
-```
-```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(g_frac~phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=vet, random=list(island=~1),method="REML")
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
-```
-```{r,message=FALSE,warning=FALSE}
-gamm<-gamm(g_frac~phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=vir, random=list(island=~1),method="REML")
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
-```
-
-Low R2 for all trials predicting g_frac (<0.4)(gammvir)
 ```
 ------------------------
 To Do as of Nov. 7
