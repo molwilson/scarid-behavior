@@ -1,0 +1,290 @@
+---
+title: "Antigua-Barbuda Fish Follows August 2017"
+author: "Molly Wilson"
+date: "8/8/2017"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    number_sections: true
+---
+
+Notes 11/11:
+* figure out dcast issues
+* replacing NA/0s within pipe
+
+Output:
+* "sum_id.csv": individual fish-level data (behavioral and survey data)
+* "sum_site.csv": site-level summary data (behavioral and survey data)
+
+```{r,message=FALSE,warning=FALSE}
+# set up
+library(startR)
+library(tidyverse)
+library(here)
+```
+
+```{r, warning=FALSE, message= FALSE}
+# import data
+site <- read.csv(here("data", "site.csv"), strip.white = T, stringsAsFactors = F) %>% select(-X)
+sp_site <- read.csv(here("data","sp_site.csv"), stringsAsFactors = F) %>%
+  filter(species %in% c("Sparisoma viride","Scarus vetula","Sparisoma aurofrenatum")) %>%
+  select(-X,-family) %>%
+  rename_at(vars(3:8), ~ paste0("consp_",.))
+
+follows <- read.csv(here("data", "follows.csv"), strip.white = T, stringsAsFactors = F) %>%
+  janitor::clean_names(case = "old_janitor") %>%
+  filter(date != "" & date != "3/26/17") %>% 
+  select(-activity_code) %>% 
+  unite("id",c(site,diver,date,time,follow_number),sep="_", remove=FALSE) %>%
+  mutate(
+    time_sec = as.numeric(time_sec),
+    time_frac = as.numeric(time_fraction),
+    length_cm = as.numeric(length_cm),
+    weight_g=as.numeric(weight_g),
+    bites = as.numeric(ifelse(is.na(bites),0,bites))
+  ) %>%
+  replace(. =="#N/A", NA)
+
+# create df with single row for all fish followed
+sum_id <- follows %>% 
+  group_by(id, date, island, site, species, species_code, phase, length_cm, weight_g, follow_sec) %>% 
+  summarize()
+```
+
+# Grazing behavior
+
+## Time budgets 
+Here I create a dataframe of time spent on each activity, per fish, in seconds and time fraction
+*(could re-do with dcast____)*
+```{r,warning=FALSE, message= FALSE}
+tb <- follows %>% 
+  group_by(id, activity, species, phase, length_cm) %>% 
+  summarize(
+    time = sum(time_sec), 
+    time_frac = sum(time_frac))
+
+# Add time budgets per activity for each fish to 'sum_id' 
+
+tbgraze <- tb %>% 
+  filter(activity == "graze") %>% 
+  subset(select=c(id,time,time_frac)) %>% 
+  rename(
+    g_sec=time,
+    g_frac=time_frac) # keep seconds for calculating grazing rates
+tbclean <- tb %>% 
+  filter(activity == "cleaned") %>% 
+  subset(select=c(id,time_frac)) %>% 
+  rename(clean_frac=time_frac)
+
+# join fish-level data to sum_id dataframe
+sum_id <- sum_id %>% 
+  left_join(tbgraze, by= "id") %>% 
+  left_join(tbclean, by = "id") # %>%
+  # replace(is.na(.),0) %>%
+  # mutate(length_cm = ifelse(0,NA,length_cm)
+```
+
+## Grazing rates
+```{r, warning=FALSE, message= FALSE}
+# bites/second during total follow time and during grazing forays (including G1 instances)
+bites <- follows %>% 
+  group_by(id) %>% 
+  summarise(bites = sum(bites))
+sum_id <- sum_id %>% 
+  left_join(bites, by="id") %>%
+  mutate(
+    br=bites/g_sec,
+    fr=bites/follow_sec*60*60,
+    tdb=bites/follow_sec*60*60*10.5
+    ) %>%
+  replace(is.na(.),0)
+
+# # Bites/second during grazing forays, excluding G1 instances
+# bites_noG1 <- follows %>% filter(activity=="graze"&Bites>1&Time_sec>1) %>% group_by(id) %>% summarize(Bites_noG1 = sum(Bites), g_sec_noG1=sum(Time_sec)) 
+# sum_id <- left_join(sum_id, bites_noG1, by="id") %>% mutate(br_g_noG1=Bites_noG1/g_sec_noG1)
+# sum_id$br_g_noG1[is.na(sum_id$br_g_noG1)] <- 0
+```
+
+## Foray length and G1 bites
+*Should I remove incomplete forays? What about forays >2min?*
+```{r,warning=FALSE, message= FALSE}
+forays <- follows %>% filter(activity == "graze")
+forays_c <- follows %>% # currently don't use this, but might want to only use complete forays
+  filter(
+    !(activity == "graze" & min == 0) | # filters forays starting at time=0
+    !(lead(activity) == "end") # filters forays overlapping with end of follow
+  )
+sum_forays <- forays %>% 
+  group_by(id) %>% 
+  summarize(for_dur=mean(time_sec),for_bites=mean(bites))
+  
+sum_id <- sum_id %>% left_join(sum_forays, by= "id")
+
+# # Frequency of G1 forays
+# G1 <- forays %>% filter(Bites==1&Time_sec==1) %>% group_by(id) %>% dplyr::summarize(G1_freq=n())
+# sum_id <- left_join(sum_id,G1, by="id")
+# sum_id$G1_freq[is.na(sum_id$G1_freq)] <- 0
+```
+
+# Competitive interactions
+
+```{r}
+# total interaction instances (all species)
+int_tot <- follows %>% 
+  filter(initiator>=1) %>% 
+  group_by(id) %>% summarise(int_tot=n())
+# interaction instances with scarids only
+int_scar <- follows %>% 
+  filter(initiator>=1) %>% 
+  filter(competitor_code %in% c("stop","qup","rbp","prp","strp","rtp","ytp")) %>%
+  group_by(id) %>% summarise(int_scar=n())
+# interaction instances with conspecifics only
+int_con <- follows %>% 
+  filter(initiator>=1) %>% 
+  filter(species==competitor_species) %>% 
+  group_by(id) %>% summarise(int_con=n())
+# interaction instances with heterospecific scarids
+int_hetscar <- follows %>% 
+  filter(initiator>=1) %>% 
+  filter(competitor_code=="stop" | competitor_code=="qup" | competitor_code=="rbp") %>% 
+  filter(species!=competitor_species) %>% 
+  group_by(id) %>% summarise(int_hetscar=n())
+# interaction instances with damselfish
+int_dam <- follows %>% 
+  filter(initiator>=1) %>% 
+  filter(competitor_code=="dam") %>% 
+  group_by(id) %>% summarise(int_dam=n())
+
+# join and add to sum_id dataframe
+sum_id <- sum_id %>% 
+  left_join(int_tot, by="id") %>% 
+  left_join(int_scar, by="id") %>% 
+  left_join(int_con, by="id") %>% 
+  left_join(int_hetscar, by="id") %>% 
+  left_join(int_dam, by="id")
+sum_id[c("int_tot","int_scar","int_con","int_hetscar","int_dam")][is.na(sum_id[c("int_tot","int_scar","int_con","int_hetscar","int_dam")])] <- 0
+
+# matrix of competitive interactions by species
+stop <- follows %>% 
+  filter(species_code=="stop") %>% 
+  mutate(follows=n()) %>% 
+  filter(competitor_code %in% c("stop","qup","rbp","prp","rtp","strp")) %>% 
+  group_by(competitor_code,island) %>% summarize(stop=n())
+qup <- follows %>% 
+  filter(species_code=="qup") %>% 
+  mutate(follows=n()) %>% 
+  filter(competitor_code %in% c("stop","qup","rbp","prp","rtp","strp")) %>% 
+  group_by(competitor_code,island) %>% summarize(qup=n())
+rbp <- follows %>% 
+  filter(species_code=="rbp") %>% 
+  mutate(follows=n()) %>% 
+  filter(competitor_code %in% c("stop","qup","rbp","prp","rtp","strp")) %>% 
+  group_by(competitor_code,island) %>% summarize(rbp=n())
+
+int_matrix <- full_join(stop, qup, by = c("competitor_code","island")) %>%
+  full_join(rbp, by = c("competitor_code","island"))
+```
+
+# Summarizing data by site, species, and phase
+Next I create a summary tables that averages variables within each site/species/phase, then combines into one table
+```{r,warning=FALSE, message= FALSE}
+# site averages
+sum_site <- sum_id %>% 
+  group_by(site,island) %>% 
+  summarize(
+    n=n(),
+    g_frac_mean=mean(g_frac),
+    g_frac_se=sd(g_frac)/sqrt(n),
+    br_mean=mean(br,na.rm=TRUE),
+    br_se=sd(br,na.rm=TRUE)/sqrt(n),
+    fr_mean=mean(fr),
+    fr_se=sd(fr)/sqrt(n),
+    for_dur_mean=mean(for_dur,na.rm=TRUE),
+    for_dur_se=sd(for_dur,na.rm=TRUE)/sqrt(n),
+    for_bites_mean=mean(for_bites,na.rm=TRUE),
+    for_bites_se=sd(for_bites,na.rm=TRUE)/sqrt(n),
+    int_tot_mean=mean(int_tot),
+    int_tot_se=sd(int_tot)/sqrt(n),
+    int_scar_mean=mean(int_scar),
+    int_scar_se=sd(int_scar)/sqrt(n),
+    int_con_mean=mean(int_con),
+    int_con_se=sd(int_con)/sqrt(n),
+    int_hetscar_mean=mean(int_hetscar),
+    int_hetscar_se=sd(int_hetscar)/sqrt(n),
+    int_dam_mean=mean(int_dam),
+    int_dam_se=sd(int_dam)/sqrt(n)
+    ) %>% 
+  select(-n)
+
+# site averages by species
+sum_site_sp <- sum_id %>% 
+  group_by(site, island, species_code) %>% 
+  summarize(
+    n=n(),
+    g_frac_mean=mean(g_frac),
+    g_frac_se=sd(g_frac)/sqrt(n),
+    br_mean=mean(br,na.rm=TRUE),
+    br_se=sd(br,na.rm=TRUE)/sqrt(n),
+    fr_mean=mean(fr),
+    fr_se=sd(fr)/sqrt(n),
+    for_dur_mean=mean(for_dur,na.rm=TRUE),
+    for_dur_se=sd(for_dur,na.rm=TRUE)/sqrt(n),
+    for_bites_mean=mean(for_bites,na.rm=TRUE),
+    for_bites_se=sd(for_bites,na.rm=TRUE)/sqrt(n), 
+    int_tot_mean=mean(int_tot),
+    int_tot_se=sd(int_tot)/sqrt(n), 
+    int_scar_mean=mean(int_scar),
+    int_scar_se=sd(int_scar)/sqrt(n), 
+    int_con_mean=mean(int_con),
+    int_con_se=sd(int_con)/sqrt(n), 
+    int_hetscar_mean=mean(int_hetscar),
+    int_hetscar_se=sd(int_hetscar)/sqrt(n), 
+    int_dam_mean=mean(int_dam),
+    int_dam_se=sd(int_dam)/sqrt(n)
+    ) %>% 
+  select(-n) 
+
+# site averages by species and phase
+sum_site_sp_ph <- sum_id %>% 
+  group_by(site, island, species_code, phase) %>% 
+  summarize(
+    n=n(),
+    g_frac_mean=mean(g_frac),
+    g_frac_se=sd(g_frac)/sqrt(n),
+    br_mean=mean(br,na.rm=TRUE),
+    br_se=sd(br,na.rm=TRUE)/sqrt(n),
+    fr_mean=mean(fr),
+    fr_se=sd(fr)/sqrt(n),
+    for_dur_mean=mean(for_dur,na.rm=TRUE),
+    for_dur_se=sd(for_dur,na.rm=TRUE)/sqrt(n),
+    for_bites_mean=mean(for_bites,na.rm=TRUE),
+    for_bites_se=sd(for_bites,na.rm=TRUE)/sqrt(n), 
+    int_tot_mean=mean(int_tot),
+    int_tot_se=sd(int_tot)/sqrt(n),
+    int_scar_mean=mean(int_scar),
+    int_scar_se=sd(int_scar)/sqrt(n),
+    int_con_mean=mean(int_con),
+    int_con_se=sd(int_con)/sqrt(n), 
+    int_hetscar_mean=mean(int_hetscar),
+    int_hetscar_se=sd(int_hetscar)/sqrt(n),
+    int_dam_mean=mean(int_dam),
+    int_dam_se=sd(int_dam)/sqrt(n)
+    ) %>% 
+  select(-n)
+```
+
+### 1_3 Join datasets, print .csv
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+# integrate all site-level variables
+sum_site <- sum_site %>% 
+  left_join(site, by="site")
+sum_id <- sum_id %>% 
+  left_join(site, by="site") %>%
+  left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
+
+write.csv(sum_site,file=here("data/sum_site.csv"))
+write.csv(sum_id,file=here("data/sum_id.csv"))
+```
+

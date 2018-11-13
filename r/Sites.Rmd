@@ -1,0 +1,433 @@
+---
+title: "Fish & Benthic Community data: Antigua, Barbuda, & Bonaire - Aug. 2017"
+author: "Molly Wilson"
+date: "8/8/2017"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    number_sections: true
+---
+
+Notes 11/11:
+* figure out dcast issues
+* replacing NA/0s within pipe
+
+Final outputs:
+* "site.csv": site-level summary data of fish, benthic, rugosity, and human impact variables
+* "sp_site.csv": site-level fish data by species (ultimately used to merge conspecific data with fish follows df)
+
+# Fish community data 
+
+```{r, echo=F,message=F,warning=F}
+# set up
+library(startR)
+library(here)
+library(janitor)
+library(tidyverse)
+```
+```{r, echo=F,message=F,warning=F}
+# import files
+ab_fish <-read.csv(here("data","ab_fish.csv"), stringsAsFactors=F) %>%
+  janitor::clean_names(case="old_janitor") %>%
+  uncount(number) %>% # expand to replicate rows if multiple fish were recorded
+  select(-c(time,depth_ft,surveyor,date)) 
+bon_herb <- read.csv(here("data","bon_herb.csv"), stringsAsFactors=F) %>% # this file is already expanded
+  janitor::clean_names(case="old_janitor") %>%
+  filter(date==2017) %>% 
+  select(-date) %>%
+  rename(island = region)
+bon_carn <- read.csv(here("data","bon_carn.csv"), stringsAsFactors=F) %>% 
+  janitor::clean_names(case="old_janitor") %>%
+  rename(island = region) %>%
+  uncount(number) %>%
+  select(-c(diver,date))
+fish <- bind_rows(bon_herb,bon_carn) %>% 
+  filter(site %in% c("Oil Slick","Karpata","Front Porch","18th Palm")) %>%
+  bind_rows(ab_fish) %>%
+  mutate(biomass = as.numeric(biomass)) %>%
+  replace(. == "", NA)
+
+ab_benthic <- read.csv(here("data","ab_benthic.csv"), stringsAsFactors=F) %>%
+  janitor::clean_names(case="old_janitor") %>%
+  mutate(height=as.numeric(height))
+ab_rugosity <- read.csv(here("data","ab_rugosity.csv"), stringsAsFactors=F) %>%
+  janitor::clean_names(case="old_janitor")
+bon_benthic <- read.csv(here("data","bon_benthic.csv"),stringsAsFactors = F) %>%
+  janitor::clean_names(case="old_janitor")
+human <- read.csv(here("data","site_human.csv"), stringsAsFactors=F) %>%
+  janitor::clean_names(case="old_janitor")
+```
+
+## Total fish population, by site
+```{r,message=F,warning=F}
+fish_tran <- fish %>% 
+  filter(biomass != 0) %>% 
+  group_by(island,site,transect) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2, 
+    den_t=n()/1.2, 
+    l_t=mean(length)
+    )
+
+fish_site <-fish_tran %>% 
+  group_by(site) %>% 
+  summarize(
+    n=n(), 
+    tot_bm=mean(bm_t), 
+    tot_bm_se=(sd(bm_t))/sqrt(n), 
+    tot_den=mean(den_t), 
+    tot_den_se=(sd(den_t))/sqrt(n), 
+    tot_l=mean(l_t), 
+    tot_l_se=(sd(l_t))/sqrt(n)
+    ) %>% 
+  select(-n) # average across transects within each site
+
+boxplot(bm_t~site, las=2, data = fish_tran)
+```
+
+## Total fish populations, by species and site
+```{r,message=F,warning=F}
+# Because not all species were present at each site/transect, I need to create template to add 0 values for biomass and density in transects where they are absent.
+exp_tran <- fish %>% 
+  group_by(site,transect) %>% 
+  summarize() # all possible site/transect combinations
+exp_sp <- fish %>% expand(nesting(species,family),site) # all possible species/site combinations
+template_sp <- full_join(exp_sp,exp_tran,by="site") # species/site/transect combinations
+
+# Biomass and density, by site and species:
+sp_tran <- fish %>% 
+  filter(biomass != 0) %>% 
+  group_by(site,transect,species) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2, 
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>% 
+  right_join(template_sp, by=c("site","transect","species")) %>% # join transect-level data with template
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t) # missing biomass and density values should be 0
+
+sp_site<-sp_tran %>% 
+  group_by(site,species,family) %>% 
+  summarize(
+    n=n(), # sample size for biomass and density includes 0 values
+    l_n=sum(!is.na(l_t)), # only count non-0 values in sample size for length
+    bm=mean(bm_t), 
+    bm_se=(sd(bm_t))/sqrt(n), 
+    den=mean(den_t), 
+    den_se=(sd(den_t))/sqrt(n),
+    l=mean(l_t, na.rm = T),
+    l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>%
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+```
+
+## Total fish populations, by functional group and site
+```{r,message=F,warning=F}
+# Herbivores
+herb_tran<- fish %>% 
+  filter(family %in% c("Scaridae","Acanthuridae"),
+         biomass != 0) %>% 
+  group_by(site,transect) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2,
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>% 
+  right_join(exp_tran, by=c("site","transect")) %>% # join with transect-level template
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t) # missing biomass and density values should be 0
+
+herb_site<-herb_tran %>% 
+  group_by(site) %>% 
+  summarize(
+    n=n(),
+    l_n=sum(!is.na(l_t)),
+    herb_bm=mean(bm_t), 
+    herb_bm_se=(sd(bm_t))/sqrt(n), 
+    herb_den=mean(den_t), 
+    herb_den_se=(sd(den_t))/sqrt(n), 
+    herb_l=mean(l_t, na.rm = T),
+    herb_l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>% 
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+# Acanthurids
+
+acan_tran <- fish %>% 
+  filter(family=="Acanthuridae",
+         biomass != 0) %>% 
+  group_by(site,transect) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2,
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>%
+  right_join(exp_tran, by=c("site","transect")) %>%
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t)
+
+acan_site<-acan_tran %>% group_by(site) %>% 
+  summarize(
+    n=n(), 
+    l_n=sum(!is.na(l_t)),
+    acan_bm=mean(bm_t),
+    acan_bm_se=(sd(bm_t))/sqrt(n),
+    acan_den=mean(den_t),
+    acan_den_se=(sd(den_t))/sqrt(n),
+    acan_l=mean(l_t, na.rm = T),
+    acan_l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>% 
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+# Carnivores
+carn_tran <- fish %>% 
+  filter(family %in% c("Serranidae","lutjanidae","Carangidae"),
+         biomass != 0) %>% 
+  group_by(site,transect) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2,
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>% 
+  right_join(exp_tran,by=c("site","transect")) %>%
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t)
+
+carn_site<-carn_tran %>% 
+  group_by(site) %>% 
+  summarize(
+    n=n(),
+    l_n=sum(!is.na(l_t)),
+    carn_bm=mean(bm_t),
+    carn_bm_se=(sd(bm_t))/sqrt(n),
+    carn_den=mean(den_t),
+    carn_den_se=(sd(den_t))/sqrt(n),
+    carn_l=mean(l_t, na.rm = T),
+    carn_l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>% 
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+```
+
+## Scarid populations, by site
+
+```{r,message=F,warning=F}
+# Total scarids
+scar_tran <- fish %>% 
+  filter(family=="Scaridae",
+         biomass != 0) %>% 
+  group_by(site,transect) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2,
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>% 
+  right_join(exp_tran,by=c("site","transect")) %>%
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t)
+
+scar_site <- scar_tran %>% 
+  group_by(site) %>% 
+  summarize(
+    n=n(),
+    l_n=sum(!is.na(l_t)),
+    scar_bm=mean(bm_t),
+    scar_bm_se=(sd(bm_t))/sqrt(n),
+    scar_den=mean(den_t),
+    scar_den_se=(sd(den_t))/sqrt(n),
+    scar_l=mean(l_t, na.rm = T),
+    scar_l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>% 
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+# Scarids by species (join wide S. vetula, S. viride, and S. aurofrenatum density, biomass, and length data)
+
+scar_site_sp <- sp_site %>% 
+    ungroup() %>%
+    filter(species=="Sparisoma viride") %>% 
+    select(-c(species,family)) %>%
+    rename_at(vars(2:7), ~ paste0("vir_",.)) %>%
+  left_join(sp_site %>% 
+    ungroup() %>%
+    filter(species=="Scarus vetula") %>% 
+    select(-c(species,family)) %>%
+    rename_at(vars(2:7), ~ paste0("vet_",.)),
+    by="site"
+  ) %>%
+  left_join(sp_site %>% 
+    ungroup() %>%
+    filter(species=="Sparisoma aurofrenatum") %>% 
+    select(-c(species,family)) %>%
+    rename_at(vars(2:7), ~ paste0("aur_",.)),
+    by="site"
+  )
+
+
+# Scarids by phase (should this be by species, too?)
+exp_ph <- fish %>% expand(phase,site)
+template_ph <- full_join(exp_ph,exp_tran,by="site") # all site/transect/phase combinations
+
+ph_tran <- fish %>% 
+  filter(family=="Scaridae",
+         biomass != 0) %>% 
+  group_by(site,transect,phase) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2,
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>% 
+  right_join(template_ph, by=c("site","transect","phase")) %>% # join transect-level data with template
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t)
+
+ph_site <- ph_tran %>% 
+  group_by(site,phase) %>% 
+  summarize(
+    n=n(),
+    l_n=sum(!is.na(l_t)),
+    bm=mean(bm_t),
+    bm_se=(sd(bm_t))/sqrt(n),
+    den=mean(den_t),
+    den_se=(sd(den_t))/sqrt(l_n),
+    l=mean(l_t, na.rm = T),
+    l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>%
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+scar_site_ph <- ph_site %>% 
+    ungroup() %>%
+    filter(phase=="j") %>% 
+    select(-c(phase)) %>%
+    rename_at(vars(2:7), ~ paste0("juv_",.)) %>%
+  left_join(ph_site %>% 
+    ungroup() %>%
+    filter(phase=="i") %>% 
+    select(-c(phase)) %>%
+    rename_at(vars(2:7), ~ paste0("init_",.)),
+    by="site"
+  ) %>%
+  left_join(ph_site %>% 
+    ungroup() %>%
+    filter(phase=="t") %>% 
+    select(-c(phase)) %>%
+    rename_at(vars(2:7), ~ paste0("term_",.)),
+    by="site"
+  )
+```
+
+# Benthic & rugosity data
+
+## Percent cover and canopy heights
+
+```{r, echo=F,message=F,warning=F}
+# Because not all categories were present within each meter, I need to create template to add 0 values in meters where they were ab_fishsent.
+exp_meter <- ab_benthic %>% 
+  group_by(site,transect,meter) %>% 
+  summarize()
+exp_cat <- ab_benthic %>% expand(nesting(code),site)
+template_bent <- full_join(exp_meter,exp_cat,by="site")
+
+# Then I can join benthic data with this template, and replace empty rows with 0 values
+bent_meter <- ab_benthic %>% 
+  group_by(site,transect,meter,code) %>% 
+  summarize(count_m=n()) %>% 
+  right_join(template_bent, by=c("site","transect","meter","code")) %>% # join transect-level data with template
+  replace(is.na(.),0) # convert NAs to 0 biomass/density in transects where a species is not present
+
+# Calculating percent cover on potential substrate (i.e. not sand), and remove meters that were 100% sand cover (no potential susbtrate)
+
+sand_meter <- bent_meter %>% 
+  filter(code=="sand") %>% 
+  rename(count_sand=count_m) %>% 
+  select(-code) 
+bent_meter <- left_join(bent_meter,sand_meter,by=c("site","transect","meter")) %>%
+  mutate(cover_m=100*count_m/(10-count_sand)) %>% 
+  filter(!is.nan(cover_m)) %>% filter(code!="sand") 
+bent_tran <- bent_meter %>% 
+  group_by(site,transect,code) %>% 
+  summarize(cover_t=mean(cover_m))
+bent_site <- bent_tran %>% 
+  group_by(site,code) %>% 
+  summarize(
+    n=n(),
+    cover=mean(cover_t),
+    cover_se=sd(cover_t)/sqrt(n)
+    ) %>% 
+  select(-n)
+
+# Canopy heights
+
+can_site <- ab_benthic %>% 
+  filter(height>=1) %>% 
+  group_by(site,transect,meter,code) %>% 
+  summarize(canopy_m=mean(height)) %>% 
+  group_by(site,transect,code) %>% 
+  summarize(canopy_t=mean(canopy_m)) %>% 
+  group_by(site,code) %>% 
+  summarize(
+    n=n(),
+    canopy=mean(canopy_t),
+    canopy_se=sd(canopy_t)/sqrt(n)
+    ) %>% 
+  select(-n)
+
+# Spread into wide site-level format, join with percent cover data in benthic.wide
+
+spread_n <- function(df, key, value) {
+    keyq <- rlang::enquo(key)
+    valueq <- rlang::enquo(value)
+    s <- rlang::quos(!!valueq)
+    df %>% gather(variable, value, !!!s) %>%
+        unite(temp, !!keyq, variable) %>%
+        spread(temp, value)
+}
+
+bent_site <- bent_site %>% 
+      spread_n(code, c(cover, cover_se)) %>%
+  left_join(can_site %>% 
+            spread_n(code, c(canopy,canopy_se))
+  ) %>% 
+  janitor::clean_names(case="old_janitor")
+
+```
+
+## Rugosity
+```{r, echo=F,message=F,warning=F}
+rug_site <- ab_rugosity %>% 
+  group_by(site,transect) %>% 
+  summarize(rugosity_t=mean(rugosity_cm)/100) %>% 
+  group_by(site) %>% 
+  summarize(
+    n=n(),
+    rugosity=mean(rugosity_t),
+    rugosity_se=sd(rugosity_t)/sqrt(n)
+    ) %>% 
+  select(-n) %>% 
+  rbind(c("Pallaster West",1.7006,NA)) %>% # missing data for Pallaster West, will use mean of Pallaster East and Mid because reef structure across all three was extremely similar
+  mutate(
+    rugosity=as.numeric(rugosity),
+    rugosity_se=as.numeric(rugosity_se)
+  )
+
+bent_site <- bent_site %>% left_join(rug_site,by="site") %>% bind_rows(bon_benthic)
+```
+
+# Integrating and exporting .csvs
+```{r, echo=F,message=F,warning=F}
+site <- fish_site %>% 
+  left_join(herb_site,by="site") %>% 
+  left_join(acan_site,by="site") %>% 
+  left_join(scar_site,by="site") %>% 
+  left_join(scar_site_sp,by="site") %>% 
+  left_join(scar_site_ph,by="site") %>% 
+  left_join(carn_site,by="site") %>%
+  left_join(bent_site,by="site") %>%
+  left_join(human,by="site")
+
+write.csv(site,file=here("data/site.csv"))
+write.csv(sp_site,file=here("data/sp_site.csv"))
+```
