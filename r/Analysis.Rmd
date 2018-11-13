@@ -1,0 +1,23 @@
+---
+title: "Figures + Analysis"
+author: "Molly Wilson"
+date: "Dec. 2018"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    number_sections: true
+---
+
+Outline of selected figures and analyses:
+
+- Grazing differences between islands: (site or island level?)
+-- ANOVAs to test statistical significance of differences here
+- Total grazing impact of site-level biomass: measured vs. reported grazing rates (add line or color by feeding rate)
+- Something looking at relationship with algal index vs. scarid biomass  
+- SEM?
+
+Notes: 
+- re: lms/gamms: don't focus on these for now, the data has so many colinearities... if anything, use full PCA in model analysis
+- Exclude Barbuda from this analysis...?
