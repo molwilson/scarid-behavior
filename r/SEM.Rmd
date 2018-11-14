@@ -15,46 +15,56 @@ output:
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 # set up
-library(rmarkdown)
-library(dplyr)
 library(tidyr)
 library(lavaan)
 library(semPlot)
 ```
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
-setwd("~/github/Scarid-Behavior/data")
-site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
-data <- read.csv("data2.csv", stringsAsFactors=FALSE)
-# add aglal indeces
-data <- data %>% mutate(index_MA = cover_MA*canopy_MA) %>% mutate(index_TA = cover_TA*canopy_TA)
+sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=FALSE) %>% select(-X)
+sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=FALSE) %>% select(-X)
+
 # recode phase and species with dummy variables
-data <- data %>% mutate(spec.dum= 
-                          ifelse(Species.Code=="stop", 1, 
-                          (ifelse(Species.Code=="qup", 2,
-                          (ifelse(Species.Code=="rbp",3,NA)))))) %>%
-  mutate(phase.dum=ifelse(Phase=="i",1,2))
+# data <- data %>% mutate(spec.dum= 
+#                           ifelse(Species.Code=="stop", 1, 
+#                           (ifelse(Species.Code=="qup", 2,
+#                           (ifelse(Species.Code=="rbp",3,NA)))))) %>%
+#   mutate(phase.dum=ifelse(Phase=="i",1,2))
 
 
 ```
 
 ```{r}
 # define model pathways
-model <- '
-    FR ~ Length.cm + phase.dum + spec.dum+ int.scar + RISK + NUTRITION
-    int.scar ~ scar.BM + cover_MA + cover_TA
-    rugosity ~ cover_LC
-    cover_LC ~ cover_MA + cover_TA
-    cover_TA ~ scar.BM
-    cover_MA ~ scar.BM
-    
-    RISK =~ scar.BM + rugosity
-    NUTRITION =~ cover_MA + cover_TA
+qup_df <- sum_id %>% 
+  select(scar_bm, ma_cover, ta_cover, fr, g_frac, rugosity, int_scar, length_cm, lc_cover) %>% 
+  na.omit()
+
+sem <- '
+  # latent variable indicators  
+      risk =~ scar_bm + rugosity
+      nutrition =~ ma_cover + ma_canopy + ta_cover + ta_canopy
+  # regressions
+      fr ~ length_cm + risk + nutrition
+      rugosity ~ lc_cover
+      lc_cover ~ ma_cover + ta_cover
+      ta_cover ~ scar_bm
+      ma_cover ~ scar_bm
 '
 
-fit <- sem(model, data=data)
+sem1 <- '
+  # latent variable indicators
+      risk =~ scar_bm      
+      nutrition =~ ma_cover + ta_cover
+  # regressions
+      fr ~ length_cm + nutrition + risk
+      lc_cover ~ ma_cover + ta_cover
+'
+
+fit <- sem(sem1, data=qup_df)
 varTable(fit)
 summary(fit, standardized=T, fit.measures=T,rsq=T)
 semPaths(fit)
+fitMeasures(fit, c("cfi","rmsea","srmr"))
 ```
 

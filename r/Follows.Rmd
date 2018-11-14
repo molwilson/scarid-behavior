@@ -10,9 +10,7 @@ output:
     number_sections: true
 ---
 
-Notes 11/11:
-* figure out dcast issues
-* replacing NA/0s within pipe
+Wrangling of fish follow data from Antigua, Barbuda, and Bonaire, as well as integration of site-level data on fish, benthic, and rugosity (from Sites.rmd).
 
 Output:
 * "sum_id.csv": individual fish-level data (behavioral and survey data)

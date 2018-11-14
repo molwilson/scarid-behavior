@@ -17,80 +17,100 @@ Notes 11/11:
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 # set up
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
 library(startR)
 library(here)
 library(tidyverse)
-#library(RColorBrewer)
 library(corrplot)
 library(ggplot2)
-
+library(RColorBrewer)
+library(ggfortify)
+library(ggsignif) # boxplot stats
+library(EnvStats) # boxplot stats
+library(car)
 library(nlme)
 library(gamm4)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
-  select(-X)
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
-  select(-X)
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island) %>%
+  filter(length_cm>=15)
 ```
 
 # Data overview:
 - Fish follows (2 min) conducted at sites in Antigua (6), Barbuda (3) and Bonaire (4) from March-August 2017
 - Follows tracked time spent grazing, bite rates, and competitive interactions (among scarids and with damselfish)
 - Follows targeted *Sparisoma viride*, *Scarus vetula*, and *Sparisoma aurofrenatum* of both initial and terminal phases 
-  +*Sparisoma aurofrenatum* were not followed in Bonaire, but added in Antigua and Bonaire due to low abundances of other two species. Some sites in Antigua and Barbuda had no/low represenation from terminal phase *viride* and *vetula*
+  + *Sparisoma aurofrenatum* were not followed in Bonaire, but added in Antigua and Bonaire due to low abundances of other two species. Some sites in Antigua and Barbuda had no/low represenation from terminal phase *viride* and *vetula*
+  + Most eventual analyses will likely focus exclusively on initial phase (standardized size window) *S. viride* and *S. vetula*
 - site level factors (benthic, fish, and rugosity) assessed at each of the 13 sites
 
-```{r,echo=FALSE}
-sample <- group_by(sum_id, site, species, phase, island) %>% summarize(n=n())
+```{r}
+sample <- group_by(sum_id, site, species, species_code, phase, island) %>% summarize(n=n())
 
-ggplot(sum_id, aes(site)) +
-        facet_grid(island~species) +
-        geom_bar(aes(fill = phase), position = "dodge") +
-        scale_fill_manual(values = c("gray", "slategray2")) +
-        theme_minimal() +
+ggplot(sample, aes(x=factor(site, levels = sum_site$site), y=n)) +
+        facet_grid(phase~species) +
+        geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+        scale_fill_manual(values = c("gray", "slategray2", "black")) +
+        labs(title="Total sample") +
+        theme_bw() +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+```{r}
+ggplot(filter(sample, species_code!="rbp" & phase == "i"),
+      aes(x=factor(site, levels = sum_site$site), y=n)) +
+        facet_grid(.~species) +
+        geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+        scale_fill_manual(values = c("gray", "slategray2", "black")) +
+        labs(title="Sample subset") +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
 
-# playing with plot options...
-ggplot(data = sample, aes(x = site, y = n, fill = phase)) + 
-    geom_bar(stat = "identity", width = 1, position = "dodge") +
-    facet_wrap(~island, strip.position = "bottom", scales = "free_x") +
-    theme(panel.spacing = unit(0, "lines"), 
-         strip.background = element_blank(),
-         strip.placement = "outside") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+Need to determine appropriate size range for comparison. Because they are not evenly distributed (i.e. larger fish in Bonaire, smaller in Barbuda), I will likely want to compare length-feeding relationships as opposed to pooled averages
+
+```{r}
+ggplot(filter(sum_id, species_code!="rbp" & phase == "i" & length_cm<=30 & length_cm>=15), aes(x = length_cm)) +
+  facet_grid(.~species) +
+  geom_density(aes(fill = island), alpha=0.4) +
+  labs(title="Size distributions within sample subset") +
+  theme_bw() 
 ```
 
 # Examing variable distributions and relationships
 
-## Site-level predictor variables: fish, benthic, and rugosity
+## Predictor variables
+Potential predictor variables are site-level fish, benthic, and rugosity values. These are likely correlated to one another, and I need to determine which ones I ultimately want to use (if modeling behavioral responses via any multivariate regressions). I can also move to SEM if I want to keep multiple correlated predictors.
 
-### Distributions
+First, check distribution of predictor variables of interest: not very normally distributed...
 ```{r,warning=FALSE,echo=FALSE}
-predictors <- sum_site %>% 
-  select(tot_bm,tot_den,scar_bm,scar_den,carn_bm,carn_den,cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity) %>% 
+pred <- sum_site %>% 
+  select(tot_bm,tot_den,scar_bm,scar_den,carn_bm,carn_den,
+         cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity) %>% 
   gather() %>% 
   na.omit()
 
-ggplot(predictors,aes(value)) +
+ggplot(pred,aes(value)) +
   facet_wrap(~ key, scales = "free") +
   geom_histogram(aes(y=..density..), colour="black", fill="white") +
   geom_density(alpha=.2, fill="#FF6666") 
 ```
-Site-level predictors are not normally distributed....
 
-### Correlations
 ```{r,echo=FALSE}
-cor = cor(sum_id %>% 
-  select(tot_bm,tot_den,scar_bm,scar_den,consp_bm,consp_den,
-         carn_bm,carn_den,cca_cover,lc_cover,
-         ma_cover, ma_canopy,ta_cover,ta_canopy,rugosity), 
-  use="pairwise.complete.obs")
-corplot <- corrplot(cor,title = "Correlation Plot", method = "square", outline = T, addgrid.col = "darkgray", order="hclust", mar = c(4,0,4,0), addrect = 4, rect.col = "black", rect.lwd = 5,cl.pos = "b", tl.col = "indianred4", tl.cex = .5, cl.cex = .5)
-
+pred <- sum_id %>% select(tot_bm,tot_den,scar_bm,scar_den,consp_bm,consp_den,
+                           carn_bm,carn_den,cca_cover,lc_cover,
+                           ma_cover, ma_canopy,ta_cover,ta_canopy,rugosity)
+c = cor(pred, use="pairwise.complete.obs")
+corplot <- corrplot(c, type = "upper", order = "hclust")
 ```
-
-Many correlations here, both within benthic/fish categories and across categories. Rugosity is correlated with both fish and benthic variables. I will examine correlations within fish community and benthic community variables to decide which I can omit and which I will integrate through pcA. Whether I include benthic variables as predictor or response variables will determine if I need to worry about fish~benthic correlations.
 
 ```{r,echo=FALSE}
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
@@ -103,46 +123,47 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
     if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
     text(0.5, 0.5, txt, cex = cex.cor * r)
 }
-pairs(~tot_bm+tot_den+scar_bm+scar_den+consp_bm+consp_den+carn_bm+carn_den+rugosity, data=sum_id,
+pairs(~consp_l+scar_bm+rugosity+ma_ind+ta_canopy+ta_cover, data=sum_id,
       lower.panel=panel.smooth, upper.panel=panel.cor, 
-      pch=20, main="Fish Community Variables", na.action = na.omit)
+      pch=20, main="Selected Fish & Benthic Community Variables", na.action = na.omit)
 ```
 
-Variables carn_den and carn_bm are essentially identical - I will remove carn_den and use carn_bm as the main preditor metric. Total fish biomass and density (tot_bm and tot_den) are highly correlated with both scarid and carnivore variables, so I will remove them. conspific biomass is highly correlated with scarid biomass so I will remove it as well (and should possibly also remove consp_den?). The selected variables I will proceed with are as follows:
-```{r,echo=FALSE}
-pairs(~scar_bm+scar_den+consp_den+carn_bm+rugosity, data=sum_id,
-      lower.panel = panel.smooth, upper.panel = panel.cor, 
-      pch=20, main = "Selected Fish Community Variables", na.action = na.omit)
+Variable selection notes:
+- excluding both carnivore variables as they are highly correlated with scarid biomass and total biomass, eventually I could make these more nuanced by distinguishing actual predators, but right now I don't think it reflects actual predator populations of >15cm parrotfish
+- rugosity is highly correlated with turf cover, and scarid density
+- scarid density: removing for now, because I think it was a bit skewed from Barbuda juveniles
+- could eventually use consp. scarid length as another indicator of overfishing?
+
+```{r}
+pca_pred <- prcomp(na.omit(sum_site %>% 
+              remove_rownames %>% 
+              column_to_rownames(var="site") %>%
+              select(ma_ind,ta_cover,ta_canopy,rugosity,scar_den,scar_bm)), 
+  center = T,scale = T)
+
+summary(pca_pred)
+plot(pca_pred,type="l")
+
+autoplot(pca_pred, data = sum_site, colour = 'island',
+         # frame = T, frame.type = "norm",
+         loadings = T, loadings.colour = 'gray',
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black', 
+            loadings.label.repel = T) +
+    scale_color_manual(name="island", values=c("lightblue", "darkseagreen", "lightsalmon")) + 
+    theme(legend.direction = 'horizontal', legend.position = 'top') +
+    theme_minimal()
+
+# add PC1 and PC2 as variables in dataset
+sum_site_pca1 <- sum_site %>% 
+  bind_cols(as.data.frame(pca_pred$x) %>% 
+           select(PC1,PC2)) %>%
+  janitor::clean_names(case="old_janitor")
+sum_id_pca1 <- sum_id %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
+write.csv(sum_id_pca1,file=here("data/sum_id_pca1.csv"))
 ```
 
-Scarid biomass, carnivore biomass, and rugosity should be integrated via pcA. Scarid density and conspific density should also be combined, or one should be omitted.
-
-```{r,echo=FALSE}
-pairs(~cca_cover+lc_cover+ma_cover+ma_canopy+ta_cover+ta_canopy+rugosity, data = sum_id,
-      lower.panel = panel.smooth, upper.panel = panel.cor, 
-      pch=20, main ="Benthic Community Variables", na.action = na.omit)
-```
-
-All benthic variables are highly correlated. I can omit cca_cover and ma_cover (accounted for by ma_canopy). The rest should be combined via pcA. First I will assess remaining correlations between selected benthic and fish community variables:
-
-```{r,echo=FALSE}
-pairs(~scar_bm+scar_den+carn_bm+lc_cover+ta_cover+ma_canopy+ta_canopy+rugosity, data=sum_id,
-      lower.panel=panel.smooth, upper.panel=panel.cor, 
-      pch=20, main="Selected Fish and Benthic Variables",na.action = na.omit)
-```
-
-Unsure how to proceed here if I do end up using both benthic and fish community variables as predictors, because some are corellated (esp. scarid_bm.s and all benthic variables....). It looks like I would integrate scar_bm and carn_bm into a pcA with all other benthic/rugosity variables. Variables scar_den and consp_den are relatively independent of all other variables (except each other). 
-
-Current outline for site-level pcA tasks:
-If benthic=predictor:
-- lc_cover + ta_cover + ma_canopy + ta_canopy + rugosity + scar_bm + carn_bm
-- scar_den + consp_den
-If benthic=response:
-- rugosity + scar_bm + carn_bm
-- lc_cover + ta_cover + ma_canopy + ta_canopy
-- scar_den + consp_den
-
-## Fish-level response variables: grazing behaviors
+## Response variables
+Fish-level grazing behaviors (as well as competitive interaction frequency)
 
 ### Distributions
 ```{r,echo=FALSE,warning=FALSE}
@@ -156,13 +177,6 @@ ggplot(grazing,aes(value)) +
   geom_histogram(aes(y=..density..), colour="black", fill="white") +
   geom_density(alpha=.2, fill="#FF6666") 
 ```
-
-### Corellations
-```{r,echo=FALSE}
-cor=cor(sum_id %>% 
-          select(g_frac,fr,br,for_dur,for_bites), use="pairwise.complete.obs")
-corplot <- corrplot(cor,title = "Correlation Plot", method = "square", outline = T, addgrid.col = "darkgray", order="hclust", mar = c(4,0,4,0), addrect = 4, rect.col = "black", rect.lwd = 5,cl.pos = "b", tl.col = "indianred4", tl.cex = .5, cl.cex = .5)
-```
  
 ```{r,echo=FALSE}
 pairs(~g_frac+fr+br+for_dur+for_bites, data=sum_id,
@@ -170,225 +184,180 @@ pairs(~g_frac+fr+br+for_dur+for_bites, data=sum_id,
       pch=20, main="Grazing Response Variables",na.action = na.omit)
 ```
 
-Variable for_bites is correlated with nearly all other variables, so will be omitted. Variables g.farc, fr. and for_dur are still correlated and should be assessed with a pcA. Variable br can be a standalone variable.
+Variable selection notes:
+- for_bites is correlated with fr and for_dur, but I will play around with keeping it for now.
 
-Grazing pcA:
-- g_frac + fr + for_dur
-- (br as standalone)
+# Grazing boxplots
+
+```{r, message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(x=island, y=fr)) + 
+  geom_boxplot() +
+  stat_summary(fun.y = mean, geom="point", shape=5, size=3) + 
+  labs(y="Feeding Rate (bites/hr)",x="",title="Hourly feeding rates") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  theme(strip.text = element_text(face = "italic")) + 
+  stat_n_text()
+
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), fr)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y="Feeding Rate (bites/hr)",x="",title="Hourly feeding rates (init. 16-24cm") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5))   
+```
 
 # Exploratory bivariate plots
 
 ## Grazing as a function of fish length
-```{r, echo=FALSE,warning=FALSE, eval=FALSE}
-ggplot(sum_id, aes(x = length_cm, y = fr, colour = island)) +
-  facet_grid(.~species) +
-  geom_point(shape = 18) +
-  scale_shape(solid = FALSE) +
-  geom_smooth(method = lm, fullrange = FALSE) +
-  ggtitle("Feeding rate by fish length") + 
-  labs(y = "Feeding Rate (bites/hr)", x = "Length (cm)") + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
-```
-```{r, echo=FALSE,warning=FALSE, eval=FALSE}
-ggplot(sum_id, aes(x = length_cm, y = br, colour = island)) +
-  facet_grid(.~species) +
-  geom_point(shape = 18) +
-  scale_shape(solid = FALSE) +
-  geom_smooth(method = lm, fullrange = FALSE) +
-  ggtitle("Feeding rate by fish length") + 
-  labs(y = "Bite Rate (bites/sec)", x = "Length (cm)") + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
-```
-```{r, echo=FALSE,warning=FALSE, eval=FALSE}
-ggplot(sum_id, aes(x = length_cm, y = g_frac, colour = island)) +
-  facet_grid(.~species) +
-  geom_point(shape = 18) +
-  scale_shape(solid = FALSE) +
-  geom_smooth(method = lm, fullrange = FALSE) +
-  ggtitle("Feeding rate by fish length") + 
-  labs(y = "Time Fraction", x = "Length (cm)") + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
-```
-
-## Grazing as a function of scarid biomass
 
 ```{r}
-ggplot(sum_id %>% filter(island!="Barbuda"), aes(x = scar_bm,y=fr)) +
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = length_cm, y = fr, colour = island)) +
+  facet_grid(.~species) +
+  geom_point(shape = 18) +
+  scale_shape(solid = FALSE) +
+  geom_smooth(method = lm, fullrange = FALSE) +
+  labs(y = "Feeding Rate (bites/hr)", x = "Length (cm)", title = "Hourly feeding rate") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
+```
+
+```{r}
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & site!="Turtle Bay"), aes(x = length_cm, y = fr, colour = site)) +
+  facet_grid(.~species) +
+  geom_point(shape = 18) +
+  scale_shape(solid = FALSE) +
+  geom_smooth(method = lm, fullrange = FALSE) +
+  labs(y = "Feeding Rate (bites/hr)", x = "Length (cm)", title = "Hourly feeding rate") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = length_cm, y = br, colour = island)) +
+  facet_grid(.~species) +
+  geom_point(shape = 18) +
+  scale_shape(solid = FALSE) +
+  geom_smooth(method = lm, fullrange = FALSE) +
+  labs(y = "Bite Rate (bites/sec)", x = "Length (cm)", title = "Bite rate while grazing") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
+```
+
+*Note: remove G1 grazing instances here?*
+
+```{r}
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = length_cm, y = g_frac, colour = island)) +
+  facet_grid(.~species) +
+  geom_point(shape = 18) +
+  scale_shape(solid = FALSE) +
+  geom_smooth(method = lm, fullrange = FALSE) +
+  labs(y = "Time Fraction", x = "Length (cm)", title = "Fraction of time spent grazing") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
+```
+
+
+## Grazing as a function of site traits
+
+```{r}
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = scar_bm,y=fr)) +
   facet_grid(.~species) +
   geom_smooth(method="loess") +
   geom_point(shape=18) +
-  ggtitle("Feeding rate by scarid biomass") +
-  labs(y="Feeding rate (bites/hr)", x="Scarid Biomass (g/100m2)") +
-  theme_minimal() + 
+  labs(y="Feeding rate (bites/hr)", x="Scarid Biomass (g/100m2)", title = "Hourly feeding rate") +
+  theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
+
 ```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_id, aes(x = scar_bm, y = fr, colour = island)) +
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = scar_bm, y = fr, colour = island)) +
   facet_grid(. ~ species) +
   geom_point(shape = 18) +
   geom_smooth(method = lm, fullrange=F) +
-  ggtitle("Feeding rate by scarid biomass") +
-  labs(y = "Feeding rate (bites/hr)", x = "Scarid Biomass (g/100m2)") +
-  theme_minimal() + 
+  labs(y = "Feeding rate (bites/hr)", x = "Scarid Biomass (g/100m2)", title = "Hourly feeding rate") +
+  theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
 ```
 ```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_id, aes(x = scar_bm, y = fr, colour = phase)) +
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = scar_bm, y = fr, colour = phase)) +
   facet_grid(. ~ species) +
   geom_point(shape = 18) +
   geom_smooth(method = lm, fullrange=F) +
-  ggtitle("Feeding rate by phase and scarid biomass") +
-  labs(y = "Feeding rate (bites/hr)", x = "Scarid Biomass (g/100m2)") +
-  theme_minimal() + 
+  labs(y = "Feeding rate (bites/hr)", x = "Scarid Biomass (g/100m2)", title = "Hourly feeding rate") +
+  theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = c("gray40", "aquamarine3"))
 ```
-```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_id, aes(x = scar_bm, y = br, colour = phase)) +
-  facet_grid(. ~ species) +
-  geom_point(shape = 18) +
-  geom_smooth(method = lm, fullrange=F) +
-  ggtitle("Bite rates (while grazing) by scarid biomass") +
-  labs(y = "Bite rate (bites/sec)", x = "Scarid Biomass (g/100m2)") +
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = c("gray40", "aquamarine3"))
+
+Notes: 
+- scarid biomass is not the best predictor once I account for differences between my samples in terms of the sizes of fish I was sampling. I think the grazing/length relationships are much stronger.  
+- restraining sample size to length windows lowers sample size and makes trends much less pronounced - esp. for phase differences  
+- reducing sample to individual phase only also blurs trends  
+
+```{r}
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = ma_ind,y=fr)) +
+  facet_grid(.~species) +
+  geom_smooth(method="loess") +
+  geom_point(shape=18) +
+  labs(y="Feeding rate (bites/hr)", x="Macroalgal index", title = "Hourly feeding rate") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
-```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_id, aes(x = scar_bm, y = g_frac, colour = phase)) +
-  facet_grid(. ~ species) +
-  geom_point(shape = 18) +
-  geom_smooth(method = lm, fullrange=F) +
-  ggtitle("Fraction of time spent grazing by phase and scarid biomass") +
-  labs(y = "Time Fraction", x = "Scarid Biomass (g/100m2)") +
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = c("gray40", "aquamarine3"))
-```
-```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_id, aes(x = scar_bm, y = for_bites, colour = phase)) +
-  facet_grid(. ~ species) +
-  geom_point(shape = 18) +
-  geom_smooth(method = lm, fullrange=F) +
-  ggtitle("Bites per foray by phase and scarid biomass") +
-  labs(y = "Bites", x = "Scarid Biomass (g/100m2)") +
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = c("gray40", "aquamarine3"))
-```
+
+
 
 ## Competitive interactions
 
 ```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_site,aes(x=scar_bm,y=int_scar.mean, shape=island)) +
+ggplot(sum_site,aes(x=scar_bm,y=int_scar_mean, shape=island)) +
   geom_point(size=3) +
   ggtitle("Interaction frequency as a function of scarid biomass") + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5)) + 
   labs(x="Scarid Biomass (g/100m2)", y="Interactions with other scarids (per 2 min follow)") +
-  geom_errorbar(aes(ymin=int_scar.mean-int_scar.se, ymax=int_scar.mean+int_scar.se))
-```
-```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_site,aes(x=scar_bm,y=int_scar.mean_stop, shape=island)) +
-  geom_point(size=3) +
-  ggtitle("S. viride interaction frequency as a function of scarid biomass") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  labs(x = "Scarid Biomass (g/100m2)", y = "Interactions with other scarids (per 2 min follow)") +
-  geom_errorbar(aes(ymin=int_scar.mean_stop-int_scar.se_stop, ymax=int_scar.mean_stop+int_scar.se_stop))
-```
-```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_site,aes(x=scar_bm,y=int_scar.mean_qup, shape=island)) +
-  geom_point(size=3) +
-  ggtitle("S. vetula interaction frequency as a function of scarid biomass") + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  labs(x="Scarid Biomass (g/100m2)", y="Interactions with other scarids (per 2 min follow)") + 
-  geom_errorbar(aes(ymin=int_scar.mean_qup-int_scar.se_qup, ymax=int_scar.mean_qup+int_scar.se_qup))
-```
-```{r,echo=FALSE,warning=FALSE}
-ggplot(sum_id,aes(x=scar_bm,y=int_scar)) +
-  facet_grid(.~species)+geom_point(shape=19) +
-  geom_smooth(method=lm) +
-  ggtitle("Competitive interactions as a function of scarid biomass") + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5))
+  geom_errorbar(aes(ymin=int_scar_mean-int_scar_se, ymax=int_scar_mean+int_scar_se))
 ```
 
-
-
-# PCAs -->
-*Do I need to normalize my variables pre-pcA? Currently just scaled, except for grazing response variables which are log-transformed* -->
-
-## Predictors
-
-```{r}
-pca_pred <- prcomp(na.omit(sum_site %>% 
-              remove_rownames %>% 
-              column_to_rownames(var="site") %>%
-              select(lc_cover,ta_cover,ma_canopy,ta_canopy,rugosity,scar_bm,scar_den,tot_bm)),
-  center = T,scale = T)
-
-summary(pca_pred)
-plot(pca_pred,type="l")
-
-autoplot(pca_pred, data = sum_site, colour = 'island',
-         loadings = T, loadings.colour = 'gray',
-         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black', 
-            loadings.label.repel = T) +
-    scale_color_manual(name="island", values=c("navy", "darkseagreen", "slategray2")) + 
-    theme(legend.direction = 'horizontal', legend.position = 'top') +
-    theme_minimal()
-
-# add PC1 and PC2 as variables in dataset
-sum_site_pca1 <- sum_site %>% 
-  bind_cols(as.data.frame(pca_pred$x) %>% 
-           select(PC1,PC2)) %>%
-  clean_names(case="old_janitor")
-sum_id_pca1 <- sum_id %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
-write.csv(sum_id_pca1,file=here("data/sum_id_pca1.csv"))
-```
-
-## Response variables
-
-```{r}
-pca_resp <- prcomp(na.omit(sum_id %>% 
-              select(g_frac,fr,br)), 
-  center = T,scale = T)
-
-summary(pca_resp)
-plot(pca_resp,type="l")
-
-autoplot(pca_resp, data = sum_id, colour = "island",
-         loadings = T, loadings.colour = 'gray',
-         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black', 
-            loadings.label.repel = T) +
-    scale_color_manual(name="island", values=c("navy", "darkseagreen", "slategray2")) + 
-    theme(legend.direction = 'horizontal', legend.position = 'top') +
-    theme_minimal()
-
-# autoplot doesn't like when I add it for_dur or for_bites (NA values?)
-```
 # Model trials
 
--site-level predictors: scar_bm,scar_den,carn_bm,benthic (pc1,pc2)
--fish-level predictors: species, phase, length
---eventually run separately for different species
---species*scar_bm interaction?
--random effects: island
--response variables: g_frac, br (?), and fr (run separately)
+-site-level predictors: scar_bm,scar_den,carn_bm,benthic (pc1,pc2)  
+-fish-level predictors: species, phase, length  
+--eventually run separately for different species  
+--species*scar_bm interaction?  
+-random effects: island  
+-response variables: g_frac, br (?), and fr (run separately)  
 
 ## Basic lm 
 ```{r}
+# Testing VIF with individual variables of interest
+lm_fr <- lm(fr~species+phase+length_cm+scar_bm+consp_den+ma_canopy+ta_cover+ta_canopy, data=filter(sum_id_pca1, species_code!="rbp"))
+summary(lm_fr) 
+vif(lm_fr)
+```
+
+Only VIF above 5 is rugosity
+```{r}
+# Using PC values as predictors
 lm_fr <- lm(fr~species+phase+length_cm+pc1+pc2, data=filter(sum_id_pca1, species_code!="rbp"))
 summary(lm_fr) 
+vif(lm_fr)
 ```
 
 ## Mixed effects models
@@ -401,19 +370,19 @@ summary(lme_fr)
 
 ## GAMs
 ```{r, echo=FALSE}
-gam<-gam(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),sum_id_pca1=data, method="REML")
+gam<-gam(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=sum_id_pca1, method="REML")
 summary(gam)
 plot(gam,pages=1)
 ```
 
 ## GAMMs
 
-```{r,message=FALSE,warning=FALSE}
+```{r,eval=F}
 gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="qup"), random=list(island=~1),method="REML")
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
-```{r,message=FALSE,warning=FALSE}
+```{r,eval=F}
 gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="stop"), random=list(island=~1),method="REML")
 summary(gamm$gam)
 plot(gamm$gam,pages=1)

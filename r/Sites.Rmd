@@ -10,9 +10,7 @@ output:
     number_sections: true
 ---
 
-Notes 11/11:
-* figure out dcast issues
-* replacing NA/0s within pipe
+Wrangling of fish, benthic, and rugosity data from Antigua, Barbuda, and Bonaire to put in usable site-level format.
 
 Final outputs:
 * "site.csv": site-level summary data of fish, benthic, rugosity, and human impact variables
@@ -93,7 +91,7 @@ boxplot(bm_t~site, las=2, data = fish_tran)
 exp_tran <- fish %>% 
   group_by(site,transect) %>% 
   summarize() # all possible site/transect combinations
-exp_sp <- fish %>% expand(nesting(species,family),site) # all possible species/site combinations
+exp_sp <- fish %>% tidyr::expand(nesting(species,family),site) # all possible species/site combinations
 template_sp <- full_join(exp_sp,exp_tran,by="site") # species/site/transect combinations
 
 # Biomass and density, by site and species:
@@ -266,9 +264,8 @@ scar_site_sp <- sp_site %>%
     by="site"
   )
 
-
 # Scarids by phase (should this be by species, too?)
-exp_ph <- fish %>% expand(phase,site)
+exp_ph <- fish %>% tidyr::expand(phase,site)
 template_ph <- full_join(exp_ph,exp_tran,by="site") # all site/transect/phase combinations
 
 ph_tran <- fish %>% 
@@ -328,7 +325,7 @@ scar_site_ph <- ph_site %>%
 exp_meter <- ab_benthic %>% 
   group_by(site,transect,meter) %>% 
   summarize()
-exp_cat <- ab_benthic %>% expand(nesting(code),site)
+exp_cat <- ab_benthic %>% tidyr::expand(nesting(code),site)
 template_bent <- full_join(exp_meter,exp_cat,by="site")
 
 # Then I can join benthic data with this template, and replace empty rows with 0 values
@@ -391,7 +388,8 @@ bent_site <- bent_site %>%
   left_join(can_site %>% 
             spread_n(code, c(canopy,canopy_se))
   ) %>% 
-  janitor::clean_names(case="old_janitor")
+  janitor::clean_names(case="old_janitor") %>%
+  select(cca_cover, cca_cover_se, lc_cover, lc_cover_se, ma_cover, ma_cover_se, ma_canopy, ma_canopy_se, ta_cover, ta_cover_se, ta_canopy, ta_canopy_se) 
 
 ```
 
@@ -413,7 +411,11 @@ rug_site <- ab_rugosity %>%
     rugosity_se=as.numeric(rugosity_se)
   )
 
-bent_site <- bent_site %>% left_join(rug_site,by="site") %>% bind_rows(bon_benthic)
+bent_site <- bent_site %>% 
+  left_join(rug_site,by="site") %>% 
+  bind_rows(bon_benthic) %>%
+  mutate(ma_ind = ma_canopy*ma_cover,
+         ta_ind = ta_canopy*ta_cover)
 ```
 
 # Integrating and exporting .csvs
