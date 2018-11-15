@@ -17,14 +17,12 @@ This is a summary of the primary figures and tests I have completed for Chapter 
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 # set up
-library(rmarkdown)
-library(dplyr)
+library(here)
+library(janitor)
 library(tidyr)
-library(lazyeval)
 library(ggplot2)
 library(ellipse)
 library(RColorBrewer)
-# library(ggbiplot)
 library(nlme)
 library(pls)
 library(mgcv)
@@ -34,22 +32,12 @@ library(reshape2)
 library(EnvStats)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
-setwd("~/github/Scarid-Behavior/data")
-site.sum <- read.csv("site.sum.csv", stringsAsFactors=FALSE) %>% select(-X)
-data <- read.csv("data2.csv", stringsAsFactors=FALSE) %>% filter(!(Species.Code=="qup" & Site=="Turtle Bay")) %>% filter(!(Species.Code=="qup" & Site=="Pallaster East")) # remove due to low sample size
-
-vetvir <- data %>% filter(Species.Code!="rbp")
-vetvirinit <- vetvir %>% filter(Phase=="i")
-vetvir20 <- vetvir %>% filter(Length.cm>=15 & Length.cm<=25)
-init20<- vetvir %>% filter(Length.cm>=15 & Length.cm<=25 & Phase=="i")
-vetvirAB <- vetvir %>% filter(Island!="Barbuda")
-vetvirAB20 <- vetvir %>% filter(Island!="Barbuda")
-vetvirABinit <- vetvirAB %>% filter(Phase=="i")
-
-
-vetvirAB20NS <- vetvirAB20 %>% filter(Site!="Snapper Point")
-vetvir20NS <- vetvir20 %>% filter(Site!="Snapper Point")
-vetvirNS <- vetvir %>% filter(Site!="Snapper Point")
+site.sum <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>% 
+  select(-X) %>%
+  janitor::clean_names(case="old_janitor")
+data <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
+  filter(!(species_code=="qup" & site=="Turtle Bay")) %>% 
+  filter(!(species_code=="qup" & Site=="Pallaster East")) # remove due to low sample size
 ```
 
 # Correlations among predictor variables
@@ -330,7 +318,7 @@ feedingrates <- bind_rows(feedingrates.vir.ANU,feedingrates.vet.ANU,feedingrates
 
 areagrazed.site <- feedingrates %>% group_by(Site,Island) %>% dplyr::summarize(personal=sum(AG.personal)/1000,standard=sum(AG.standard)/1000)
 
-areagrazed.site <- as.data.frame(areagrazed.site)
+area <- as.data.frame(areagrazed.site)
 AG <- melt(areagrazed.site, id=c("Site","Island")) %>% dplyr::rename("data.source"=variable, "area.grazed"=value)
 ```
 ```{r}

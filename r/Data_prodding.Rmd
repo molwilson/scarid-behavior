@@ -147,7 +147,7 @@ plot(pca_pred,type="l")
 autoplot(pca_pred, data = sum_site, colour = 'island',
          # frame = T, frame.type = "norm",
          loadings = T, loadings.colour = 'gray',
-         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black', 
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
             loadings.label.repel = T) +
     scale_color_manual(name="island", values=c("lightblue", "darkseagreen", "lightsalmon")) + 
     theme(legend.direction = 'horizontal', legend.position = 'top') +
@@ -195,7 +195,7 @@ ggplot(filter(sum_id,
        aes(x=island, y=fr)) + 
   geom_boxplot() +
   stat_summary(fun.y = mean, geom="point", shape=5, size=3) + 
-  labs(y="Feeding Rate (bites/hr)",x="",title="Hourly feeding rates") +
+  labs(y = "Feeding Rate (bites/hr)", x = "", title = "Hourly feeding rates (i. phase, 16-24cm)") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) + 
   geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
@@ -208,7 +208,7 @@ ggplot(filter(sum_id,
        aes(factor(island), fr)) + 
   geom_violin(aes(fill=island)) +
   geom_boxplot(width=0.1) + 
-  labs(y="Feeding Rate (bites/hr)",x="",title="Hourly feeding rates (init. 16-24cm") +
+  labs(y = "Feeding Rate (bites/hr)", x = "", title = "Hourly feeding rates (i. phase, 16-24cm)") +
   geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
   facet_grid(.~species) + 
   stat_n_text() +
@@ -218,12 +218,128 @@ ggplot(filter(sum_id,
   theme(plot.title = element_text(hjust = 0.5))   
 ```
 
+```{r}
+vet <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="qup")
+aov_fr_vet <- aov(fr ~ island, data = vet)
+summary.aov(aov_fr_vet) # significant differences
+TukeyHSD(aov_fr_vet)
+plot(aov_fr_vet, 2) # normally distributed
+leveneTest(fr ~ island, data = vet) # homogeneity of variance
+```
+```{r}
+vir <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="stop")
+aov_fr_vir <- aov(fr ~ island, data = vir, white.adjust=T) 
+summary.aov(aov_fr_vir) # significant differences
+TukeyHSD(aov_fr_vir)
+plot(aov_fr_vir, 2) # normally distributed
+leveneTest(fr ~ island, data = vir) # heteroskedastic - add white.adjust=TRUE
+```
+
+```{r}
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), g_frac)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Fraction of time", x = "",title="Grazing time budgets (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+```{r}
+vet <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="qup")
+aov_g_vet <- aov(g_frac ~ island, data = vet, white.adjust = T)
+summary.aov(aov_g_vet) # significant differences
+TukeyHSD(aov_g_vet)
+plot(aov_g_vet, 2) # normally distributed
+leveneTest(g_frac ~ island, data = vet) # heteroskedastic - add white.adjust = 2
+```
+```{r}
+vir <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="stop")
+aov_g_vir <- aov(g_frac ~ island, data = vir, white.adjust=T) 
+summary.aov(aov_g_vir) # significant differences
+TukeyHSD(aov_g_vir)
+plot(aov_g_vir, 2) # normally distributed
+leveneTest(g_frac ~ island, data = vir) # homogeneity of variance
+```
+
+
+```{r}
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), br)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Bite Rate (bites/sec)", x = "", title = "Bite rate while grazing (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+```{r}
+vet <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="qup")
+aov_br_vet <- aov(br ~ island, data = vet)
+summary.aov(aov_br_vet) # significant differences
+TukeyHSD(aov_br_vet)
+plot(aov_br_vet, 2) # normally distributed
+leveneTest(br ~ island, data = vet) # homogeneity of variance
+```
+```{r}
+vir <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="stop")
+aov_br_vir <- aov(br ~ island, data = vir, white.adjust=T) 
+summary.aov(aov_br_vir) # significant differences
+TukeyHSD(aov_br_vir)
+plot(aov_br_vir, 2) # normally distributed
+leveneTest(br ~ island, data = vir) # heteroskedastic - add white.adjust=TRUE
+```
+
+
+```{r}
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), for_bites)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Bite Rate (bites/sec)", x = "", title = "Bite rate while grazing (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+vet <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="qup")
+aov_for_bites_vet <- aov(for_bites ~ island, data = vet)
+summary.aov(aov_for_bites_vet) # significant differences
+TukeyHSD(aov_for_bites_vet)
+plot(aov_for_bites_vet, 2) # normally distributed
+leveneTest(for_bites ~ island, data = vet) # homogeneity of variance
+
+vir <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="stop")
+aov_for_bites_vir <- aov(for_bites ~ island, data = vir, white.adjust=T) 
+summary.aov(aov_for_bites_vir) # significant differences
+TukeyHSD(aov_for_bites_vir)
+plot(aov_for_bites_vir, 2) # normally distributed
+leveneTest(for_bites ~ island, data = vir) # heteroskedastic - add white.adjust=TRUE
+```
+
 # Exploratory bivariate plots
 
 ## Grazing as a function of fish length
 
 ```{r}
-ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = length_cm, y = fr, colour = island)) +
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), 
+       aes(x = length_cm, y = fr, colour = island)) +
   facet_grid(.~species) +
   geom_point(shape = 18) +
   scale_shape(solid = FALSE) +
@@ -337,28 +453,12 @@ ggplot(sum_site,aes(x=scar_bm,y=int_scar_mean, shape=island)) +
 
 # Model trials
 
--site-level predictors: scar_bm,scar_den,carn_bm,benthic (pc1,pc2)  
--fish-level predictors: species, phase, length  
---eventually run separately for different species  
---species*scar_bm interaction?  
--random effects: island  
--response variables: g_frac, br (?), and fr (run separately)  
-
-## Basic lm 
-```{r}
-# Testing VIF with individual variables of interest
-lm_fr <- lm(fr~species+phase+length_cm+scar_bm+consp_den+ma_canopy+ta_cover+ta_canopy, data=filter(sum_id_pca1, species_code!="rbp"))
-summary(lm_fr) 
-vif(lm_fr)
-```
-
-Only VIF above 5 is rugosity
-```{r}
-# Using PC values as predictors
-lm_fr <- lm(fr~species+phase+length_cm+pc1+pc2, data=filter(sum_id_pca1, species_code!="rbp"))
-summary(lm_fr) 
-vif(lm_fr)
-```
+- site-level predictors: scar_bm,scar_den,carn_bm,benthic (pc1,pc2)  
+- fish-level predictors: species, phase, length  
+  + eventually run separately for different species  
+  + species*scar_bm interaction?  
+- random effects: island  
+- response variables: g_frac, br (?), and fr (run separately)  
 
 ## Mixed effects models
 - random effect: island
@@ -366,16 +466,15 @@ vif(lm_fr)
 ```{r}
 lme_fr <- lme(fr~phase+length_cm+species+pc1+pc2,data=filter(sum_id_pca1, species_code!="rbp"),random=~1|island, na.action = na.omit)
 summary(lme_fr)
+vif(lme_fr)
 ```
 
-## GAMs
+## GAM + GAMM
 ```{r, echo=FALSE}
 gam<-gam(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=sum_id_pca1, method="REML")
 summary(gam)
 plot(gam,pages=1)
 ```
-
-## GAMMs
 
 ```{r,eval=F}
 gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="qup"), random=list(island=~1),method="REML")
@@ -388,12 +487,7 @@ summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
 
-```
 ------------------------
-To Do as of Nov. 7
-* ~~incorporate pcs~~
-* boosted regression trees ecosphere 2017 adrians paper
-* ~~simpler graphs with just herb density x axis - grazing behaviors y, facet by species~~
-* ~~species*density as fixed effect~~
-* species as random effect
-* ~~break out species and run separately~~  
+To Do as of Nov. 7  
+* boosted regression trees ecosphere 2017 adrians paper  
+* species as random effect  

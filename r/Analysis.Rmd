@@ -21,3 +21,127 @@ Outline of selected figures and analyses:
 Notes: 
 - re: lms/gamms: don't focus on these for now, the data has so many colinearities... if anything, use full PCA in model analysis
 - Exclude Barbuda from this analysis...?
+
+```{r}
+# set up
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+library(startR)
+library(here)
+library(tidyverse)
+library(corrplot)
+library(ggplot2)
+library(RColorBrewer)
+library(ggfortify)
+library(ggsignif) # boxplot stats
+library(EnvStats) # boxplot stats
+library(car)
+library(nlme)
+library(gamm4)
+```
+```{r}
+sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
+sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island) %>%
+  filter(length_cm>=15)
+fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
+  select(-X)
+```
+
+# Island - level differences in grazing rates
+
+```{r}
+# Violin plot of inter-island differences
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), fr)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Feeding Rate (bites/hr)", x = "", title = "Hourly feeding rates (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+# Length-weight relationships between islands
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), 
+       aes(x = length_cm, y = fr, colour = island)) +
+  facet_grid(.~species) +
+  geom_point(shape = 18) +
+  scale_shape(solid = FALSE) +
+  geom_smooth(method = lm, fullrange = FALSE) +
+  labs(y = "Feeding Rate (bites/hr)", x = "Length (cm)", title = "Hourly feeding rate") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
+
+# Calculating length-weight coefficients
+
+fr_anu_vir <- lm(fr~length_cm, data=filter(sum_id, island == "Antigua" & phase == "i" & species_code == "stop"))
+summary(fr_anu_vir) # fr(Antigua, S. viride, initial) = 445-8*L
+
+fr_anu_vet <- lm(fr~length_cm, data=filter(sum_id, island == "Antigua" & phase == "i" & species_code == "qup"))
+summary(fr_anu_vet) # fr(Antigua, S. vetula, initial) = 1030-12*L
+
+fr_bon_vir <- lm(fr~length_cm, data=filter(sum_id, island == "Bonaire" & phase == "i" & species_code == "stop"))
+summary(fr_bon_vir) # fr(Bonaire, S. viride, initial) = 1057-17*L
+
+fr_bon_vet <- lm(fr~length_cm, data=filter(sum_id, island == "Bonaire" & phase == "i" & species_code == "qup"))
+summary(fr_bon_vet) # fr(Bonaire, S. vetula, initial) = 1347+10*L
+```
+
+fr(Antigua, *S. viride*, initial) = 445-8*L
+fr(Antigua, *S. vetula*, initial) = 1030-12*L
+fr(Bonaire, *S. viride*, initial) = 1057-17*L
+fr(Bonaire, *S. vetula*, initial) = 1347+10*L
+
+## Comparison to published equations
+
+## Predicted feeding rates and bite sizes from standard equations
+Bite sizes as predicted by Bruggemann/Bozec:
+bs(*S. vetula*) = 4.013*10^-4*L^2
+bs(*S. viride*) = 5.257*10^-4*L^2
+
+Feeding rates as published by Bruggemann/Bozec
+fr(Published, *S. viride*, initial) = 1089-17*L-56 
+  *(extra term because phase modifier is not used here (i=1))*
+fr(Published, *S. vetula*, initial) = 3329-33*L
+
+## adding predicted feeding rates from observed relationships
+
+```{r}
+fish_fr <- fish %>% 
+  filter(species_code %in% c("stop", "qup") & island %in% c("Antigua","Bonaire")) %>%
+  mutate(
+    fr_pers = ifelse(island == "Antigua" & species_code == "stop", 445-8*length,
+                     ifelse(island == "Antigua" & species_code == "qup", 1030-12*length,
+                            ifelse(island == "Bonaire" & species_code == "stop", 
+                                   1057-17*length, 1347+10*length))),
+    fr_pub = ifelse(species_code == "stop", 1089-17*length-56, 3329-33*length),
+    bs = ifelse(species_code == "stop", 5.257*10^-4*length^2, 4.013*10^-4*length^2),
+    ag_pers = fr_pers*bs,
+    ag_pub = fr_pub*bs
+)
+
+ag_site <- fish_fr %>% group_by(site,island) %>%
+  summarize(personal=sum(ag_pers)/1000,published=sum(ag_pub)/1000)
+ag_melt <- ag_site %>% as.data.frame() %>% 
+  gather(source, area_grazed, -c(site,island))
+
+ggplot(filter(ag_melt, island == "Antigua"),
+      aes(x=reorder(site, -area_grazed), y=area_grazed)) +
+        geom_bar(aes(fill = source), position = "dodge", stat = "identity") +
+        scale_fill_manual(values = c("black", "slategray2")) +
+        labs(title=expression(Predicted~grazing~impact~on~Antiguan~reefs~(m^2/hr))) +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```

@@ -44,7 +44,9 @@ bon_carn <- read.csv(here("data","bon_carn.csv"), stringsAsFactors=F) %>%
 fish <- bind_rows(bon_herb,bon_carn) %>% 
   filter(site %in% c("Oil Slick","Karpata","Front Porch","18th Palm")) %>%
   bind_rows(ab_fish) %>%
-  mutate(biomass = as.numeric(biomass)) %>%
+  mutate(
+    biomass = as.numeric(biomass),
+    species_code = tolower(species_code)) %>%
   replace(. == "", NA)
 
 ab_benthic <- read.csv(here("data","ab_benthic.csv"), stringsAsFactors=F) %>%
@@ -432,4 +434,5 @@ site <- fish_site %>%
 
 write.csv(site,file=here("data/site.csv"))
 write.csv(sp_site,file=here("data/sp_site.csv"))
+write.csv(fish,file=here("data/fish.csv")) # for predicting grazing impact of observed fish communities at each site (see Analysis.rmd)
 ```
