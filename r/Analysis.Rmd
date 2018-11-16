@@ -12,15 +12,20 @@ output:
 
 Outline of selected figures and analyses:
 
-- Grazing differences between islands: (site or island level?)
--- ANOVAs to test statistical significance of differences here
-- Total grazing impact of site-level biomass: measured vs. reported grazing rates (add line or color by feeding rate)
-- Something looking at relationship with algal index vs. scarid biomass  
-- SEM?
+- Grazing differences between islands: (site or island level?)  
+-- ANOVAs to test statistical significance of differences here  
+- Total grazing impact of site-level biomass: measured vs. reported grazing rates (add line or color by feeding rate)  
+- Something looking at relationship with algal index vs. scarid biomass 
+- SEM?  
 
 Notes: 
-- re: lms/gamms: don't focus on these for now, the data has so many colinearities... if anything, use full PCA in model analysis
-- Exclude Barbuda from this analysis...?
+- re: lms/gamms: have been stressed about collinearities in the data, but some aren't that bad... return to models once I have a better handle on what I want to use (and make sure I'm looking at mixed effects models only?)  
+- Exclude Barbuda from this analysis...?  
+- From Nash et al. 2016:  
+  + used GAMMs with site and reef zone as random effects
+  + aggregated data to the site level
+  + used mean or median values based on skew of different predictor/response variables (within each site)
+
 
 ```{r}
 # set up

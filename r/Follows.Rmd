@@ -218,7 +218,7 @@ sum_site <- sum_id %>%
 
 # site averages by species
 sum_site_sp <- sum_id %>% 
-  group_by(site, island, species_code) %>% 
+  group_by(site, island, species, species_code) %>% 
   summarize(
     n=n(),
     g_frac_mean=mean(g_frac),
@@ -246,7 +246,7 @@ sum_site_sp <- sum_id %>%
 
 # site averages by species and phase
 sum_site_sp_ph <- sum_id %>% 
-  group_by(site, island, species_code, phase) %>% 
+  group_by(site, island, species, species_code, phase) %>% 
   summarize(
     n=n(),
     g_frac_mean=mean(g_frac),
@@ -281,8 +281,12 @@ sum_site <- sum_site %>%
 sum_id <- sum_id %>% 
   left_join(site, by="site") %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
+sum_site_sp_ph <- sum_site_sp_ph %>% 
+  left_join(site, by="site") %>%
+  left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
 
 write.csv(sum_site,file=here("data/sum_site.csv"))
 write.csv(sum_id,file=here("data/sum_id.csv"))
+write.csv(sum_site_sp_ph,file=here("data/sum_site_sp_ph.csv"))
 ```
 

@@ -54,10 +54,9 @@ sem <- '
 
 sem1 <- '
   # latent variable indicators
-      risk =~ scar_bm      
       nutrition =~ ma_cover + ta_cover
   # regressions
-      fr ~ length_cm + nutrition + risk
+      fr ~ length_cm + nutrition
       lc_cover ~ ma_cover + ta_cover
 '
 

@@ -40,9 +40,9 @@ sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
   arrange(island)
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X) %>%
-  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
-  arrange(island) %>%
   filter(length_cm>=15)
+sum_site_sp_ph <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+  select(-X) 
 ```
 
 # Data overview:
@@ -134,17 +134,38 @@ Variable selection notes:
 - scarid density: removing for now, because I think it was a bit skewed from Barbuda juveniles
 - could eventually use consp. scarid length as another indicator of overfishing?
 
+PCA to visualize variable relationships:
+
 ```{r}
 pca_pred <- prcomp(na.omit(sum_site %>% 
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
-              select(ma_ind,ta_cover,ta_canopy,rugosity,scar_den,scar_bm)), 
+              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity,scar_den,scar_bm,)), 
   center = T,scale = T)
 
-summary(pca_pred)
-plot(pca_pred,type="l")
-
 autoplot(pca_pred, data = sum_site, colour = 'island',
+         # frame = T, frame.type = "norm",
+         loadings = T, loadings.colour = 'gray',
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
+            loadings.label.repel = T) +
+    scale_color_manual(name="island", values=c("lightblue", "darkseagreen", "lightsalmon")) + 
+    theme(legend.direction = 'horizontal', legend.position = 'top') +
+    theme_minimal()
+```
+
+PCA for correlated (benthic only?) variables:
+
+```{r}
+pca_bent <- prcomp(na.omit(sum_site %>% 
+              remove_rownames %>% 
+              column_to_rownames(var="site") %>%
+              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity,)), 
+  center = T,scale = T)
+
+summary(pca_bent)
+plot(pca_bent,type="l")
+
+autoplot(pca_bent, data = sum_site, colour = 'island',
          # frame = T, frame.type = "norm",
          loadings = T, loadings.colour = 'gray',
          loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
@@ -155,11 +176,13 @@ autoplot(pca_pred, data = sum_site, colour = 'island',
 
 # add PC1 and PC2 as variables in dataset
 sum_site_pca1 <- sum_site %>% 
-  bind_cols(as.data.frame(pca_pred$x) %>% 
+  bind_cols(as.data.frame(pca_bent$x) %>% 
            select(PC1,PC2)) %>%
   janitor::clean_names(case="old_janitor")
 sum_id_pca1 <- sum_id %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
+sum_ssp_pca1 <- sum_site_sp_ph %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
 write.csv(sum_id_pca1,file=here("data/sum_id_pca1.csv"))
+write.csv(sum_ssp_pca1,file=here("data/sum_ssp_pca1.csv"))
 ```
 
 ## Response variables
@@ -215,7 +238,21 @@ ggplot(filter(sum_id,
   scale_fill_brewer(palette="Blues") +
   theme_bw() +
   theme(strip.text = element_text(face = "italic")) +
-  theme(plot.title = element_text(hjust = 0.5))   
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(site), fr)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Feeding Rate (bites/hr)", x = "", title = "Hourly feeding rates (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, hjust = 1)) 
 ```
 
 ```{r}
@@ -428,7 +465,7 @@ Notes:
 - reducing sample to individual phase only also blurs trends  
 
 ```{r}
-ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = ma_ind,y=fr)) +
+ggplot(filter(sum_id_pca1, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = ma_ind,y=fr)) +
   facet_grid(.~species) +
   geom_smooth(method="loess") +
   geom_point(shape=18) +
@@ -461,28 +498,38 @@ ggplot(sum_site,aes(x=scar_bm,y=int_scar_mean, shape=island)) +
 - response variables: g_frac, br (?), and fr (run separately)  
 
 ## Mixed effects models
-- random effect: island
+- random effect: island or site?
 
 ```{r}
-lme_fr <- lme(fr~phase+length_cm+species+pc1+pc2,data=filter(sum_id_pca1, species_code!="rbp"),random=~1|island, na.action = na.omit)
+lme_fr <- lme(fr~phase+length_cm+species+scar_bm+pc1+pc2,
+              data=filter(sum_id_pca1, species_code!="rbp"),
+              random=~1|site, 
+              na.action = na.omit
+              )
 summary(lme_fr)
-vif(lme_fr)
+vif(lme_fr) # test VIF here, because I'm not sure how to do it in GAMM yet...? All low VIF (<3) when random = island, but when random = site, VIFs jump up (for scarid_den & pc2)
 ```
 
-## GAM + GAMM
-```{r, echo=FALSE}
-gam<-gam(fr~species+phase+s(length_cm)+s(scar_bm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=sum_id_pca1, method="REML")
-summary(gam)
-plot(gam,pages=1)
-```
+## GAMM
+- for GAMMs - seems model results are the same whether random = site or island?
 
 ```{r,eval=F}
-gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="qup"), random=list(island=~1),method="REML")
+gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
+           family=gaussian(link=identity),
+           data=filter(sum_id_pca1, species_code=="stop"),
+           random=list(site=~1),
+           method="REML"
+           )
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
 ```{r,eval=F}
-gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2), family=gaussian(link=identity),data=filter(sum_id_pca1, species_code=="stop"), random=list(island=~1),method="REML")
+gamm<-gamm(fr_mean~phase+species+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
+           family=gaussian(link=identity),
+           data=filter(sum_ssp_pca1, species_code!="rbp" & island!="Barbuda"),
+           random=list(site=~1),
+           method="REML"
+           )
 summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
