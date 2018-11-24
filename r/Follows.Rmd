@@ -43,7 +43,8 @@ follows <- read.csv(here("data", "follows.csv"), strip.white = T, stringsAsFacto
     weight_g=as.numeric(weight_g),
     bites = as.numeric(ifelse(is.na(bites),0,bites))
   ) %>%
-  replace(. =="#N/A", NA)
+  replace(. =="#N/A", NA) %>%
+  filter(length_cm >= 15)
 
 # create df with single row for all fish followed
 sum_id <- follows %>% 
@@ -277,12 +278,12 @@ sum_site_sp_ph <- sum_id %>%
 ```{r, echo=FALSE,message=FALSE,warning=FALSE}
 # integrate all site-level variables
 sum_site <- sum_site %>% 
-  left_join(site, by="site")
+  left_join(site, by=c("island","site"))
 sum_id <- sum_id %>% 
-  left_join(site, by="site") %>%
+  left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
 sum_site_sp_ph <- sum_site_sp_ph %>% 
-  left_join(site, by="site") %>%
+  left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
 
 write.csv(sum_site,file=here("data/sum_site.csv"))

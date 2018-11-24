@@ -32,6 +32,7 @@ library(EnvStats) # boxplot stats
 library(car)
 library(nlme)
 library(gamm4)
+library(xtable)
 ```
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
@@ -42,6 +43,8 @@ sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X) %>%
   filter(length_cm>=15)
 sum_site_sp_ph <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+  select(-X) 
+fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
   select(-X) 
 ```
 
@@ -93,8 +96,8 @@ Potential predictor variables are site-level fish, benthic, and rugosity values.
 First, check distribution of predictor variables of interest: not very normally distributed...
 ```{r,warning=FALSE,echo=FALSE}
 pred <- sum_site %>% 
-  select(tot_bm,tot_den,scar_bm,scar_den,carn_bm,carn_den,
-         cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity) %>% 
+  select(tot_bm,tot_den,scar_bm,scar_den,carn30_bm,carn30_den,
+         cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity,spear_daily) %>% 
   gather() %>% 
   na.omit()
 
@@ -106,7 +109,7 @@ ggplot(pred,aes(value)) +
 
 ```{r,echo=FALSE}
 pred <- sum_id %>% select(tot_bm,tot_den,scar_bm,scar_den,consp_bm,consp_den,
-                           carn_bm,carn_den,cca_cover,lc_cover,
+                           carn30_bm,carn30_den,cca_cover,lc_cover,
                            ma_cover, ma_canopy,ta_cover,ta_canopy,rugosity)
 c = cor(pred, use="pairwise.complete.obs")
 corplot <- corrplot(c, type = "upper", order = "hclust")
@@ -140,7 +143,7 @@ PCA to visualize variable relationships:
 pca_pred <- prcomp(na.omit(sum_site %>% 
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
-              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity,scar_den,scar_bm,)), 
+              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity,scar_den,scar_bm,spear_daily)),
   center = T,scale = T)
 
 autoplot(pca_pred, data = sum_site, colour = 'island',
@@ -156,16 +159,14 @@ autoplot(pca_pred, data = sum_site, colour = 'island',
 PCA for correlated (benthic only?) variables:
 
 ```{r}
-pca_bent <- prcomp(na.omit(sum_site %>% 
+pca_all <- prcomp(na.omit(sum_site %>% 
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
-              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity,)), 
+              # filter(island!="Barbuda") %>%
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, scar_bm, scar_den)),
   center = T,scale = T)
 
-summary(pca_bent)
-plot(pca_bent,type="l")
-
-autoplot(pca_bent, data = sum_site, colour = 'island',
+autoplot(pca_all, data = sum_site, colour = 'island',
          # frame = T, frame.type = "norm",
          loadings = T, loadings.colour = 'gray',
          loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
@@ -174,15 +175,29 @@ autoplot(pca_bent, data = sum_site, colour = 'island',
     theme(legend.direction = 'horizontal', legend.position = 'top') +
     theme_minimal()
 
+pca_bent <- prcomp(na.omit(sum_site %>% 
+              remove_rownames %>% 
+              column_to_rownames(var="site") %>%
+              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity)), 
+  center = T,scale = T)
+summary(pca_bent)
+plot(pca_bent,type="l")
+
 # add PC1 and PC2 as variables in dataset
-sum_site_pca1 <- sum_site %>% 
+sum_site <- sum_site %>% 
+  # filter(island!="Barbuda") %>%
   bind_cols(as.data.frame(pca_bent$x) %>% 
            select(PC1,PC2)) %>%
-  janitor::clean_names(case="old_janitor")
-sum_id_pca1 <- sum_id %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
-sum_ssp_pca1 <- sum_site_sp_ph %>% left_join(select(sum_site_pca1,site,pc1,pc2), by = "site")
-write.csv(sum_id_pca1,file=here("data/sum_id_pca1.csv"))
-write.csv(sum_ssp_pca1,file=here("data/sum_ssp_pca1.csv"))
+  rename(pc1_bent=PC1,
+         pc2_bent=PC2) %>% 
+  bind_cols(as.data.frame(pca_all$x) %>% 
+           select(PC1,PC2)) %>%
+  rename(pc1_all=PC1,
+         pc2_all=PC2)
+
+sum_id_pca <- sum_id %>% 
+  left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
+
 ```
 
 ## Response variables
@@ -465,7 +480,7 @@ Notes:
 - reducing sample to individual phase only also blurs trends  
 
 ```{r}
-ggplot(filter(sum_id_pca1, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = ma_ind,y=fr)) +
+ggplot(filter(sum_id_pca, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = ma_ind,y=fr)) +
   facet_grid(.~species) +
   geom_smooth(method="loess") +
   geom_point(shape=18) +
@@ -501,9 +516,9 @@ ggplot(sum_site,aes(x=scar_bm,y=int_scar_mean, shape=island)) +
 - random effect: island or site?
 
 ```{r}
-lme_fr <- lme(fr~phase+length_cm+species+scar_bm+pc1+pc2,
-              data=filter(sum_id_pca1, species_code!="rbp"),
-              random=~1|site, 
+lme_fr <- lme(fr~phase+length_cm+species+scar_bm+pc1_bent+pc2_bent,
+              data=filter(sum_id_pca, species_code!="rbp"),
+              random=~1|island, # do I need random slope too?
               na.action = na.omit
               )
 summary(lme_fr)
@@ -514,9 +529,9 @@ vif(lme_fr) # test VIF here, because I'm not sure how to do it in GAMM yet...? A
 - for GAMMs - seems model results are the same whether random = site or island?
 
 ```{r,eval=F}
-gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
+gamm<-gamm(fr~phase+s(length_cm)+s(pc1_bent)+s(pc2_bent)+s(scar_bm)+s(scar_den), 
            family=gaussian(link=identity),
-           data=filter(sum_id_pca1, species_code=="stop"),
+           data=filter(sum_id_pca, species_code=="qup"),
            random=list(site=~1),
            method="REML"
            )
@@ -524,14 +539,16 @@ summary(gamm$gam)
 plot(gamm$gam,pages=1)
 ```
 ```{r,eval=F}
-gamm<-gamm(fr_mean~phase+species+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
+gamm1<-gamm(fr_mean~phase+species+s(pc1_bent)+s(pc2_bent)+s(scar_bm)+s(scar_den), 
            family=gaussian(link=identity),
-           data=filter(sum_ssp_pca1, species_code!="rbp" & island!="Barbuda"),
+           data=filter(sum_ssp_pca, species_code!="rbp" & island!="Barbuda"),
            random=list(site=~1),
            method="REML"
            )
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
+summary(gamm1$gam)
+AIC(gamm1$lme)
+plot(gamm1$gam,pages=1)
+
 ```
 
 ------------------------

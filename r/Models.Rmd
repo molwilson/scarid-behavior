@@ -1,0 +1,194 @@
+---
+title: "Scarid behavior GAM/GAMMS"
+author: "Molly Wilson"
+date: "Dec. 2018"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    number_sections: true
+---
+
+```{r}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+
+library(startR)
+library(here)
+library(tidyverse)
+library(mgcv)
+library(car)
+
+sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
+  select(-X)
+sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
+```
+
+# Examining predictor variables
+Notes: in models using benthic-only PCA, scarid biomass and scarid density are highly collinear with benthic PCA variables (understandably). I don't think I can justify separating them, even though they are my ultimate variables of interest. I can use PCA loadings to interpret model outcomes. Carnivore biomass and spearfishing presence is also highly correlated with scarid biomass and thus benthic PCA variables - I am excluding it for now.
+
+```{r}
+pca_all <- prcomp(na.omit(sum_site %>% 
+              remove_rownames %>% 
+              column_to_rownames(var="site") %>%
+              # filter(island!="Barbuda") %>%
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, scar_bm, scar_den)),
+  center = T,scale = T)
+autoplot(pca_all, data = sum_site, colour = 'island',
+         # frame = T, frame.type = "norm",
+         loadings = T, loadings.colour = 'gray',
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
+            loadings.label.repel = T) +
+    scale_color_manual(name="island", values=c("lightblue", "darkseagreen", "salmon")) + 
+    theme(legend.direction = 'horizontal', legend.position = 'top') +
+    theme_minimal()
+
+pca_bent <- prcomp(na.omit(sum_site %>% 
+              remove_rownames %>% 
+              column_to_rownames(var="site") %>%
+              # filter(island!="Barbuda") %>%
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity)),
+  center = T,scale = T)
+
+sum_site <- sum_site %>% 
+  # filter(island!="Barbuda") %>%
+  bind_cols(as.data.frame(pca_bent$x) %>% 
+           select(PC1,PC2)) %>%
+  rename(pc1_bent=PC1,
+         pc2_bent=PC2) %>% 
+  bind_cols(as.data.frame(pca_all$x) %>% 
+           select(PC1,PC2)) %>%
+  rename(pc1_all=PC1,
+         pc2_all=PC2)
+
+sum_id_pca <- sum_id %>% 
+  left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
+
+```
+
+
+```{r,echo=FALSE}
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y))
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste(prefix, txt, sep="")
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+pairs(~scar_bm + pc1_bent + pc2_bent, data=sum_site,
+      lower.panel=panel.smooth, upper.panel=panel.cor, 
+      pch=20, main="Selected Fish & Benthic Community Variables", na.action = na.omit)
+```
+
+```{r}
+m_data <- sum_id_pca %>% filter(species_code!="rbp")
+vif(lm(fr ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=m_data))
+vif(lme(fr ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=m_data,
+        random=~1|island, 
+        na.action = na.omit
+        ))
+```
+
+Confirming I can't use scarid biomass and/or density as separate from benthic PCA variables. VIF of scar_bm is just slightly >3. Removing rugosity from benthic PCA reduces scar_bm ~ pc1 correlation slightly, but still >0.7. 
+
+BUT: VIF done on LME where random=site or random=island shows values <3 when using benthic PCA values + scarid biomass... *stay tuned...*
+
+
+# Model as LME first
+```{r}
+lme1 <- lme(fr ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=m_data,
+    random = ~1 | island, 
+    na.action = na.omit
+    )
+summary(lme1)
+vif(lme1)
+```
+
+
+# Switching to gamm, checking model validity
+
+Notes:  
+- GLS: option for model when homogeneity of variances is not satisfied, can add weights for residuals. Keep reading Zuur et al. and decide if I need to go beyond this (e.g. GAMM)
+
+```{r}
+m1 <- gam(fr ~ factor(species) + s(length_cm, bs = "cs") + s(pc1_all, bs = "cs") + s(pc2_all, bs = "cs"), data=m_data)
+summary(m1)
+plot(m1)
+gam.check(m1)
+
+gls1 <- gam(fr ~ species + length_cm + pc1_all + pc2_all, data=m_data)
+summary(gls1)
+
+e <- resid(m1)
+coplot(e ~ length_cm | species, data = m_data) # differences in res. dist. between species
+coplot(e ~ pc1_all | species, data = m_data) # differences in res. dist. between species
+coplot(e ~ pc2_all | species, data = m_data) # inconsistent res.
+
+
+
+
+m2 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) +s (pc2_all) +
+          s(length_cm, by = as.numeric(species_code=="qup")), 
+          data = m_data)
+summary(m2)
+gam.check(m2)
+
+m3 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) + s(pc2_all) +
+          s(pc1_all, by = as.numeric(species_code == "qup")),
+          data = m_data)
+summary(m3)
+gam.check(m3)
+
+m4 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) + s(pc2_all) +
+          s(pc2_all, by = as.numeric(species_code == "qup")),
+          data = m_data)
+summary(m4)
+gam.check(m4)
+
+m5 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) + s(pc2_all) +
+          s(pc1_all, by = as.numeric(species_code == "qup"))+
+          s(pc2_all, by = as.numeric(species_code == "qup")),
+          data = m_data)
+summary(m5)
+plot(m5)
+gam.check(m5)
+
+
+```
+
+Notes:  
+- Violates assumption of homogeneity of variance (increasing variance as predictor values increase)
+- Satisfies assumption of normality
+
+
+```{r}
+gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
+           family=gaussian(link=identity),
+           data=filter(sum_id_pca1, species_code=="qup"),
+           random=list(site=~1),
+           method="REML"
+           )
+summary(gamm$gam)
+plot(gamm$gam,pages=1)
+```
+```{r}
+gamm1<-gamm(fr_mean~phase+species+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
+           family=gaussian(link=identity),
+           data=filter(sum_ssp_pca1, species_code!="rbp" & island!="Barbuda"),
+           random=list(site=~1),
+           method="REML"
+           )
+summary(gamm1$gam)
+gamtabs(gamm1)
+AIC(gamm1$lme)
+plot(gamm1$gam,pages=1)
+
+```

@@ -1,1 +1,14 @@
-﻿Site,Spearfishing,Spear.binary,Diving18th Palm,None,No,HighFront Porch,None,No,HighKarpata,None,No,HighOil Slick,None,No,HighPillars,Low,Yes,HighSnapper Point,High,Yes,MedMermaid Gardens,Low,Yes,MedRendezvous,High,Yes,LowTurtle Bay,High,Yes,LowWindward,High,Yes,MedPallaster East,Low,No,LowPallaster Mid,Low,No,LowPallaster West,Low,No,Low
+﻿Site,Spear daily,Spear.binary,Diving
+18th Palm,0,No,High
+Front Porch,0,No,High
+Karpata,0,No,High
+Oil Slick,0,No,High
+Pillars,1,Yes,High
+Snapper Point,2,Yes,Med
+Mermaid Gardens,1,Yes,Med
+Rendezvous,2,Yes,Low
+Turtle Bay,3,Yes,Low
+Windward,3,Yes,Med
+Pallaster East,1,No,Low
+Pallaster Mid,1,No,Low
+Pallaster West,1,No,Low

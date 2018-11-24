@@ -72,7 +72,7 @@ fish_tran <- fish %>%
     )
 
 fish_site <-fish_tran %>% 
-  group_by(site) %>% 
+  group_by(site, island) %>% 
   summarize(
     n=n(), 
     tot_bm=mean(bm_t), 
@@ -82,17 +82,29 @@ fish_site <-fish_tran %>%
     tot_l=mean(l_t), 
     tot_l_se=(sd(l_t))/sqrt(n)
     ) %>% 
-  select(-n) # average across transects within each site
+  select(-n) %>% # average across transects within each site\
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
 
-boxplot(bm_t~site, las=2, data = fish_tran)
+ggplot(fish_site,
+      aes(x=factor(site, levels = fish_site$site), y=tot_bm)) +
+        geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+        geom_errorbar(aes(ymin=tot_bm-tot_bm_se, ymax=tot_bm+tot_bm_se),
+                  width=.2,
+                  position=position_dodge(.9)) +
+        scale_fill_manual(values = c("gray", "slategray2", "darkseagreen")) +
+        labs(title="Total fish biomass") +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ## Total fish populations, by species and site
 ```{r,message=F,warning=F}
 # Because not all species were present at each site/transect, I need to create template to add 0 values for biomass and density in transects where they are absent.
+
 exp_tran <- fish %>% 
   group_by(site,transect) %>% 
-  summarize() # all possible site/transect combinations
+  summarize()  # all possible site/transect combinations
 exp_sp <- fish %>% tidyr::expand(nesting(species,family),site) # all possible species/site combinations
 template_sp <- full_join(exp_sp,exp_tran,by="site") # species/site/transect combinations
 
@@ -127,11 +139,13 @@ sp_site<-sp_tran %>%
 
 ## Total fish populations, by functional group and site
 ```{r,message=F,warning=F}
+island_site <- fish_site %>% select(island,site) # island/site relationships to add to plots
+
 # Herbivores
 herb_tran<- fish %>% 
   filter(family %in% c("Scaridae","Acanthuridae"),
          biomass != 0) %>% 
-  group_by(site,transect) %>% 
+  group_by(site, transect) %>% 
   summarize(
     bm_t=sum(biomass)/1.2,
     den_t=n()/1.2,
@@ -160,7 +174,7 @@ herb_site<-herb_tran %>%
 acan_tran <- fish %>% 
   filter(family=="Acanthuridae",
          biomass != 0) %>% 
-  group_by(site,transect) %>% 
+  group_by(site, transect) %>% 
   summarize(
     bm_t=sum(biomass)/1.2,
     den_t=n()/1.2,
@@ -169,7 +183,8 @@ acan_tran <- fish %>%
   right_join(exp_tran, by=c("site","transect")) %>%
   mutate_each(funs(replace(.,is.na(.),0)), -l_t)
 
-acan_site<-acan_tran %>% group_by(site) %>% 
+acan_site<-acan_tran %>% 
+  group_by(site) %>% 
   summarize(
     n=n(), 
     l_n=sum(!is.na(l_t)),
@@ -185,9 +200,9 @@ acan_site<-acan_tran %>% group_by(site) %>%
 
 # Carnivores
 carn_tran <- fish %>% 
-  filter(family %in% c("Serranidae","lutjanidae","Carangidae"),
+  filter(family %in% c("Serranidae", "Lutjanidae", "Carangidae", "Sphyraenidae", "Haemulidae"),
          biomass != 0) %>% 
-  group_by(site,transect) %>% 
+  group_by(site, transect) %>% 
   summarize(
     bm_t=sum(biomass)/1.2,
     den_t=n()/1.2,
@@ -210,6 +225,45 @@ carn_site<-carn_tran %>%
     ) %>% 
   select(-c(n,l_n)) %>%
   replace(. == "NaN",NA)
+
+# Carnivores over 30cm
+carn30_tran <- fish %>% 
+  filter(family %in% c("Serranidae","Lutjanidae","Carangidae", "Sphyraenidae", "Haemulidae"),
+         biomass != 0, length>=30) %>% 
+  group_by(site, transect) %>% 
+  summarize(
+    bm_t=sum(biomass)/1.2,
+    den_t=n()/1.2,
+    l_t=mean(length)
+    ) %>% 
+  right_join(exp_tran,by=c("site","transect")) %>%
+  mutate_each(funs(replace(.,is.na(.),0)), -l_t)
+
+carn30_site<-carn30_tran %>% 
+  group_by(site) %>% 
+  summarize(
+    n=n(),
+    l_n=sum(!is.na(l_t)),
+    carn30_bm=mean(bm_t),
+    carn30_bm_se=(sd(bm_t))/sqrt(n),
+    carn30_den=mean(den_t),
+    carn30_den_se=(sd(den_t))/sqrt(n),
+    carn30_l=mean(l_t, na.rm = T),
+    carn30_l_se=(sd(l_t, na.rm = T))/sqrt(l_n)
+    ) %>% 
+  select(-c(n,l_n)) %>%
+  replace(. == "NaN",NA)
+
+ggplot(right_join(carn30_site, island_site, by="site"),
+      aes(x=factor(site, levels = fish_site$site), y=carn30_bm)) +
+        geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+        geom_errorbar(aes(ymin=carn30_bm-carn30_bm_se, ymax=carn30_bm+carn30_bm_se),
+                      width=.2,
+                      position=position_dodge(.9)) +
+        scale_fill_manual(values = c("gray", "slategray2", "darkseagreen")) +
+        labs(title="Biomass of Piscivores over 25cm") +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
 
@@ -429,6 +483,7 @@ site <- fish_site %>%
   left_join(scar_site_sp,by="site") %>% 
   left_join(scar_site_ph,by="site") %>% 
   left_join(carn_site,by="site") %>%
+  left_join(carn30_site,by="site") %>%
   left_join(bent_site,by="site") %>%
   left_join(human,by="site")
 
