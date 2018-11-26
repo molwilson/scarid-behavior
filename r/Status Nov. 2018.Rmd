@@ -106,9 +106,11 @@ gamm_s <- gamm(fr_mean ~ species_code + phase + s(length_m) + s(pc1_bent) + s(pc
 summary(gamm_s$gam)
 plot(gamm_s$gam,pages=1)
 plot(gamm_s$lme) # not too heteroskedastic?
-AIC(gamm_s$lme)
 
-# Confirming low VIF among predictor variables with site-level model
+```
+
+Confirming low VIF among predictor variables with site-level model
+```{r, echo=F, message=F, warning=F}
 vif(lme(fr_mean ~ phase + length_m + scar_bm + pc1_bent + pc2_bent, 
         data = sum_ssp_pca,
         random = ~1 | island, 
@@ -116,8 +118,9 @@ vif(lme(fr_mean ~ phase + length_m + scar_bm + pc1_bent + pc2_bent,
         )) # all <3
 ```
 
+
 ### Individual-level data
-```{r}
+```{r, warning=F, message=F, echo=F}
 gamm_id <- gamm(fr ~ species_code + phase + s(length_cm) + s(pc1_bent) + s(pc2_bent) + s(scar_bm) 
               # +
               #   s(length_cm, by = as.numeric(species_code == "qup")) +
@@ -133,9 +136,10 @@ gamm_id <- gamm(fr ~ species_code + phase + s(length_cm) + s(pc1_bent) + s(pc2_b
 summary(gamm_id$gam)
 plot(gamm_id$gam,pages=1)
 plot(gamm_id$lme) # shows some heteroskedasticity
-AIC(gamm_id$lme)
+```
 
-# Confirming low VIF among predictor variables with site-level model
+Confirming low VIF among predictor variables with id-level model
+```{r, warning=F, message=F, echo=F}
 vif(lme(fr ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent, 
         data = sum_id_pca,
         random = ~1 | island, 
@@ -143,5 +147,10 @@ vif(lme(fr ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent,
         )) # prints strange when include RBP data
 ```
 
+## SEM results?
 
-## SEM results
+```{r, echo=F, message=F, warning=F}
+knitr::include_graphics(here("figs/sem.png"))
+```
+
+Notes: Still troubleshooting getting full SEM to run, unsure about how to deal with different data layers/sample sizes. If aggregating to the site level, I will be limited in the number of variables I can include (~8), though I could run separate models by species/phase. I could also use piecewise SEM (e.g. Miller et al. 2018), though does not allow for latent variables.
