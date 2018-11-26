@@ -104,22 +104,22 @@ fr_bon_vet <- lm(fr~length_cm, data=filter(sum_id, island == "Bonaire" & phase =
 summary(fr_bon_vet) # fr(Bonaire, S. vetula, initial) = 1347+10*L
 ```
 
-fr(Antigua, *S. viride*, initial) = 445-8*L
-fr(Antigua, *S. vetula*, initial) = 1030-12*L
-fr(Bonaire, *S. viride*, initial) = 1057-17*L
-fr(Bonaire, *S. vetula*, initial) = 1347+10*L
+$$fr(Antigua, S. viride, i) = 445-8*L$$
+$$fr(Antigua, S. vetula, i) = 1030-12*L$$
+$$fr(Bonaire, S. viride, i) = 1057-17*L$$
+$$fr(Bonaire, S. vetula, i) = 1347+10*L$$
 
 ## Comparison to published equations
 
 ## Predicted feeding rates and bite sizes from standard equations
 Bite sizes as predicted by Bruggemann/Bozec:
-bs(*S. vetula*) = 4.013*10^-4*L^2
-bs(*S. viride*) = 5.257*10^-4*L^2
+$$bs(S. vetula) = 4.013*10^{-4}*L^2$$
+$$bs(S. viride) = 5.257*10^{-4}*L^2$$
 
 Feeding rates as published by Bruggemann/Bozec
-fr(Published, *S. viride*, initial) = 1089-17*L-56 
+$$fr(Published, S. viride, i) = 1089-17*L-56 $$
   *(extra term because phase modifier is not used here (i=1))*
-fr(Published, *S. vetula*, initial) = 3329-33*L
+$$fr(Published, S. vetula, initial) = 3329-33*L$$
 
 ## adding predicted feeding rates from observed relationships
 
@@ -146,7 +146,10 @@ ggplot(filter(ag_melt, island == "Antigua"),
       aes(x=reorder(site, -area_grazed), y=area_grazed)) +
         geom_bar(aes(fill = source), position = "dodge", stat = "identity") +
         scale_fill_manual(values = c("black", "slategray2")) +
-        labs(title=expression(Predicted~grazing~impact~on~Antiguan~reefs~(m^2/hr))) +
+        labs(x = "Site", 
+             y = expression(Area~grazed~(m^2)~per~Hour), 
+            title = expression(Predicted~cumulative~grazing~impact~on~Antiguan~reefs~(m^2/hr))) +
         theme_bw() +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(here("figs/grazing_imp.png"))
 ```

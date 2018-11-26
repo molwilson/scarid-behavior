@@ -20,17 +20,31 @@ library(here)
 library(tidyverse)
 library(mgcv)
 library(car)
+library(ggfortify)
 
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X)
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
-  select(-X) %>%
-  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
-  arrange(island)
+  select(-X)
+sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+  select(-X)
 ```
 
 # Examining predictor variables
 Notes: in models using benthic-only PCA, scarid biomass and scarid density are highly collinear with benthic PCA variables (understandably). I don't think I can justify separating them, even though they are my ultimate variables of interest. I can use PCA loadings to interpret model outcomes. Carnivore biomass and spearfishing presence is also highly correlated with scarid biomass and thus benthic PCA variables - I am excluding it for now.
+
+```{r,warning=FALSE,echo=FALSE}
+predictors <- sum_site %>% 
+  select(tot_bm,tot_den,scar_bm,scar_den,carn30_bm,carn30_den,
+         cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity,spear_daily) %>% 
+  gather() %>% 
+  na.omit()
+
+ggplot(predictors,aes(value)) +
+  facet_wrap(~ key, scales = "free") +
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666") 
+```
 
 ```{r}
 pca_all <- prcomp(na.omit(sum_site %>% 
@@ -68,6 +82,8 @@ sum_site <- sum_site %>%
 
 sum_id_pca <- sum_id %>% 
   left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
+sum_ssp_pca <- sum_ssp %>% 
+  left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
 
 ```
 
@@ -101,16 +117,89 @@ Confirming I can't use scarid biomass and/or density as separate from benthic PC
 
 BUT: VIF done on LME where random=site or random=island shows values <3 when using benthic PCA values + scarid biomass... *stay tuned...*
 
+# Examining potential response variables
+Feeding rate (fr) is primary variable of interest
+```{r,echo=FALSE,warning=FALSE}
+response <- sum_id %>% 
+  select(g_frac,fr,br,for_dur,for_bites) %>% 
+  gather() %>% 
+  na.omit()
 
-# Model as LME first
+ggplot(response,aes(value)) + 
+  facet_wrap(~ key, scales = "free") + 
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666") 
+```
+
+# Model as LME first, check model validity  
+I won't get too far into dealing with heteroskedasticity here, because it may be improved when switching to GAMM
 ```{r}
+m_data <- sum_id_pca %>% filter(species_code!="rbp" & fr<=3000) # removing outlier
 lme1 <- lme(fr ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=m_data,
     random = ~1 | island, 
     na.action = na.omit
     )
 summary(lme1)
 vif(lme1)
+plot(lme1, which = c(1), col = 1)
+plot(m_data$length_cm, resid(lme1))
+plot(m_data$scar_bm, resid(lme1)) # highest scar_cm site is big jump from other intervals - scale?
+plot(m_data$pc1_bent, resid(lme1))
+plot(m_data$pc2_bent, resid(lme1)) # potential interval/scale issues?
+plot(factor(m_data$phase), resid(lme1))
+plot(factor(m_data$species), resid(lme1)) # much greater spread in S. vetula data than S. viride
+
+
 ```
+
+_Dealing with heteroskedasticity_: clear heteroskedasticity in my data, likely with multiple sources...  
+- differences in variance between species, but modelling species independently still does not fully account for heteroskedasticity (below)
+- scar_cm and pc2_bent have unevenly distributed intervals - scale?
+
+_Options/notes from Zuur et al. 2009 (Ch.4)_:  
+- add variance covariate (p.78)
+- log transform DV (p.131)
+
+Dealing with species separately: 
+
+```{r}
+# S. vetula only
+qup_data <- sum_id_pca %>% filter(species_code=="qup")
+lme2 <- lme(fr ~ phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=qup_data,
+    random = ~1 | island, 
+    na.action = na.omit
+    )
+summary(lme2)
+vif(lme2)
+plot(lme2, which = c(1), col = 1)
+
+# S. viride only
+vir_data <- sum_id_pca %>% filter(species_code=="stop")
+lme3 <- lme(fr ~ phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=vir_data,
+    random = ~1 | island, 
+    na.action = na.omit
+    )
+summary(lme3)
+vif(lme3)
+plot(lme3, which = c(1), col = 1)
+```
+
+Log transforming feeding rate variable - still heteroskedasticity, largely from observations with fr=0?
+
+```{r}
+m_data_tr <- sum_id_pca %>% 
+  filter(species_code!="rbp" & fr<=3000) # removing outlier
+  # mutate(fr_c = scale(fr, scale = F)) # trying to center fr variable
+lme4 <- lme(log10(fr/100 + 1) ~ species + phase + length_cm + scar_bm + pc1_bent + pc2_bent, data=m_data_tr,
+    random = ~1 | island, 
+    na.action = na.omit
+    )
+summary(lme4)
+vif(lme4)
+plot(lme4, which = c(1), col = 1)
+```
+
+Because of 0 values, 
 
 
 # Switching to gamm, checking model validity
@@ -119,76 +208,88 @@ Notes:
 - GLS: option for model when homogeneity of variances is not satisfied, can add weights for residuals. Keep reading Zuur et al. and decide if I need to go beyond this (e.g. GAMM)
 
 ```{r}
-m1 <- gam(fr ~ factor(species) + s(length_cm, bs = "cs") + s(pc1_all, bs = "cs") + s(pc2_all, bs = "cs"), data=m_data)
+m1 <- gam(fr ~ factor(species) + s(length_cm, bs = "cs") + s(scar_bm, bs = "cs") + 
+            s(pc1_bent, bs = "cs") + s(pc2_bent, bs = "cs"), data = m_data)
 summary(m1)
 plot(m1)
 gam.check(m1)
-
-gls1 <- gam(fr ~ species + length_cm + pc1_all + pc2_all, data=m_data)
-summary(gls1)
 
 e <- resid(m1)
 coplot(e ~ length_cm | species, data = m_data) # differences in res. dist. between species
 coplot(e ~ pc1_all | species, data = m_data) # differences in res. dist. between species
 coplot(e ~ pc2_all | species, data = m_data) # inconsistent res.
+coplot(e ~ scar_bm | species, data = m_data)
 
-
-
-
-m2 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) +s (pc2_all) +
+m2 <- gam(fr ~ factor(species_code) + s(length_cm) + s(scar_bm) + 
+          s(pc1_bent, bs = "cs") + s(pc2_bent, bs = "cs") +
           s(length_cm, by = as.numeric(species_code=="qup")), 
           data = m_data)
 summary(m2)
 gam.check(m2)
 
-m3 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) + s(pc2_all) +
-          s(pc1_all, by = as.numeric(species_code == "qup")),
+m3 <- gam(fr ~ factor(species_code) + s(length_cm) + s(scar_bm) + s(pc1_bent) + s(pc2_bent) +
+          s(pc1_bent, by = as.numeric(species_code == "qup")),
           data = m_data)
 summary(m3)
 gam.check(m3)
 
-m4 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) + s(pc2_all) +
-          s(pc2_all, by = as.numeric(species_code == "qup")),
+m4 <- gam(fr ~ factor(species_code) + s(length_cm) + s(scar_bm) + s(pc1_bent) + s(pc2_bent) +
+          s(pc2_bent, by = as.numeric(species_code == "qup")),
           data = m_data)
 summary(m4)
 gam.check(m4)
 
-m5 <- gam(fr ~ factor(species_code) + s(length_cm) + s(pc1_all) + s(pc2_all) +
-          s(pc1_all, by = as.numeric(species_code == "qup"))+
-          s(pc2_all, by = as.numeric(species_code == "qup")),
+m5 <- gam(fr ~ factor(species_code) + s(length_cm) + s(scar_bm) + s(pc1_bent) + s(pc2_bent) +
+          s(pc1_bent, by = as.numeric(species_code == "qup")) +
+          s(pc2_bent, by = as.numeric(species_code == "qup")) +
+          s(length_cm, by = as.numeric(species_code == "qup")) +
+          s(scar_bm, by = as.numeric(species_code == "qup")),
           data = m_data)
 summary(m5)
 plot(m5)
 gam.check(m5)
-
-
 ```
 
-Notes:  
+_Model validity notes_:  
 - Violates assumption of homogeneity of variance (increasing variance as predictor values increase)
 - Satisfies assumption of normality
 
-
+*need to add interaction terms*
 ```{r}
-gamm<-gamm(fr~phase+s(length_cm)+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
-           family=gaussian(link=identity),
-           data=filter(sum_id_pca1, species_code=="qup"),
-           random=list(site=~1),
-           method="REML"
-           )
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
-```
-```{r}
-gamm1<-gamm(fr_mean~phase+species+s(pc1)+s(pc2)+s(scar_bm)+s(scar_den), 
-           family=gaussian(link=identity),
-           data=filter(sum_ssp_pca1, species_code!="rbp" & island!="Barbuda"),
-           random=list(site=~1),
-           method="REML"
+gamm1 <- gamm(fr ~ species_code + phase + s(length_cm) + s(pc1_bent) + s(pc2_bent) + s(scar_bm) +
+                s(length_cm, by = as.numeric(species_code == "qup")) +
+                s(pc1_bent, by = as.numeric(species_code == "qup")) +
+                s(scar_bm, by = as.numeric(species_code == "qup")), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           weights = varIdent(form =~ 1 | species),
+           data = m_data
            )
 summary(gamm1$gam)
-gamtabs(gamm1)
-AIC(gamm1$lme)
 plot(gamm1$gam,pages=1)
+plot(gamm1$lme) # shows heteroskedasticity
+AIC(gamm1$lme)
+```
 
+*Re: Nash et al. 2016: should I be aggregating data to the site level?*
+```{r}
+m_data2 <- sum_ssp_pca %>% filter(species_code!="rbp") # currently doesn't work when removing rbp data
+gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_m) + s(pc1_bent) + s(pc2_bent) + s(scar_bm), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           data = sum_ssp_pca
+           )
+summary(gamm2$gam)
+plot(gamm2$gam,pages=1)
+plot(gamm2$lme) # not too heteroskedastic?
+AIC(gamm2$lme)
+
+# Confirming low VIF among predictor variables with site-level model
+lme1 <- lme(fr_mean ~ phase + length_m + scar_bm + pc1_bent + pc2_bent, data=sum_ssp_pca,
+    random = ~1 | island, 
+    na.action = na.omit
+    )
+vif(lme1)
 ```

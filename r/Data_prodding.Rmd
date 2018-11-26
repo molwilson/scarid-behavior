@@ -143,7 +143,8 @@ PCA to visualize variable relationships:
 pca_pred <- prcomp(na.omit(sum_site %>% 
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
-              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity,scar_den,scar_bm,spear_daily)),
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, rugosity, scar_den, 
+                     scar_bm, spear_daily)),
   center = T,scale = T)
 
 autoplot(pca_pred, data = sum_site, colour = 'island',
@@ -159,14 +160,15 @@ autoplot(pca_pred, data = sum_site, colour = 'island',
 PCA for correlated (benthic only?) variables:
 
 ```{r}
-pca_all <- prcomp(na.omit(sum_site %>% 
+pca_bent <- prcomp(na.omit(sum_site %>% 
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
-              # filter(island!="Barbuda") %>%
-              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, scar_bm, scar_den)),
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, rugosity)), 
   center = T,scale = T)
+summary(pca_bent)
+plot(pca_bent,type="l")
 
-autoplot(pca_all, data = sum_site, colour = 'island',
+autoplot(pca_bent, data = sum_site, colour = 'island',
          # frame = T, frame.type = "norm",
          loadings = T, loadings.colour = 'gray',
          loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
@@ -175,13 +177,7 @@ autoplot(pca_all, data = sum_site, colour = 'island',
     theme(legend.direction = 'horizontal', legend.position = 'top') +
     theme_minimal()
 
-pca_bent <- prcomp(na.omit(sum_site %>% 
-              remove_rownames %>% 
-              column_to_rownames(var="site") %>%
-              select(ma_ind,ta_cover,ta_canopy,lc_cover,rugosity)), 
-  center = T,scale = T)
-summary(pca_bent)
-plot(pca_bent,type="l")
+ggsave(filename = here("figs/pca_bent.png"))
 
 # add PC1 and PC2 as variables in dataset
 sum_site <- sum_site %>% 
@@ -190,14 +186,18 @@ sum_site <- sum_site %>%
            select(PC1,PC2)) %>%
   rename(pc1_bent=PC1,
          pc2_bent=PC2) %>% 
-  bind_cols(as.data.frame(pca_all$x) %>% 
+  bind_cols(as.data.frame(pca_pred$x) %>% 
            select(PC1,PC2)) %>%
   rename(pc1_all=PC1,
          pc2_all=PC2)
 
 sum_id_pca <- sum_id %>% 
   left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
+write.csv(sum_id_pca, file=here("data/sum_id_pca.csv"))
 
+sum_ssp_pca <- sum_site_sp_ph %>%
+  left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
+write.csv(sum_ssp_pca, file=here("data/sum_ssp_pca.csv"))
 ```
 
 ## Response variables
@@ -240,6 +240,7 @@ ggplot(filter(sum_id,
   facet_grid(.~species) + 
   theme(strip.text = element_text(face = "italic")) + 
   stat_n_text()
+ggsave(filename = here("figs/bp_fr.png"))
 
 ggplot(filter(sum_id, 
               phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
@@ -253,7 +254,8 @@ ggplot(filter(sum_id,
   scale_fill_brewer(palette="Blues") +
   theme_bw() +
   theme(strip.text = element_text(face = "italic")) +
-  theme(plot.title = element_text(hjust = 0.5)) 
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = here("figs/vp_fr.png"))
 
 ggplot(filter(sum_id, 
               phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
@@ -291,6 +293,20 @@ leveneTest(fr ~ island, data = vir) # heteroskedastic - add white.adjust=TRUE
 ggplot(filter(sum_id, 
               phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
        aes(factor(island), g_frac)) + 
+  geom_boxplot() + 
+  labs(y = "Fraction of time", x = "",title="Grazing time budgets (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+ggsave(here("figs/bp_gfrac.png"))
+
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), g_frac)) + 
   geom_violin(aes(fill=island)) +
   geom_boxplot(width=0.1) + 
   labs(y = "Fraction of time", x = "",title="Grazing time budgets (i. phase, 16-24cm)") +
@@ -300,7 +316,8 @@ ggplot(filter(sum_id,
   scale_fill_brewer(palette="Blues") +
   theme_bw() +
   theme(strip.text = element_text(face = "italic")) +
-  theme(plot.title = element_text(hjust = 0.5)) 
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(here("figs/vp_gfrac.png"))
 ```
 
 ```{r}
@@ -325,6 +342,20 @@ leveneTest(g_frac ~ island, data = vir) # homogeneity of variance
 ggplot(filter(sum_id, 
               phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
        aes(factor(island), br)) + 
+  geom_boxplot() + 
+  labs(y = "Bite Rate (bites/sec)", x = "", title = "Bite rate while grazing (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+ggsave(here("figs/bp_br.png"))
+
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), br)) + 
   geom_violin(aes(fill=island)) +
   geom_boxplot(width=0.1) + 
   labs(y = "Bite Rate (bites/sec)", x = "", title = "Bite rate while grazing (i. phase, 16-24cm)") +
@@ -335,6 +366,7 @@ ggplot(filter(sum_id,
   theme_bw() +
   theme(strip.text = element_text(face = "italic")) +
   theme(plot.title = element_text(hjust = 0.5)) 
+ggsave(here("figs/vp_br.png"))
 ```
 
 ```{r}
@@ -359,9 +391,8 @@ leveneTest(br ~ island, data = vir) # heteroskedastic - add white.adjust=TRUE
 ggplot(filter(sum_id, 
               phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
        aes(factor(island), for_bites)) + 
-  geom_violin(aes(fill=island)) +
-  geom_boxplot(width=0.1) + 
-  labs(y = "Bite Rate (bites/sec)", x = "", title = "Bite rate while grazing (i. phase, 16-24cm)") +
+  geom_boxplot() + 
+  labs(y = "Bites per foray", x = "", title = "Bites per foray (i. phase, 16-24cm)") +
   geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
   facet_grid(.~species) + 
   stat_n_text() +
@@ -369,6 +400,22 @@ ggplot(filter(sum_id,
   theme_bw() +
   theme(strip.text = element_text(face = "italic")) +
   theme(plot.title = element_text(hjust = 0.5)) 
+ggsave(here("figs/bp_fordur.png"))
+
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), for_bites)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Bites per foray", x = "", title = "Bites per foray (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+ggsave(here("figs/vp_fordur.png"))
 
 vet <- sum_id %>% filter(phase == "i" & length_cm >= 16 & length_cm <= 24 & species_code=="qup")
 aov_for_bites_vet <- aov(for_bites ~ island, data = vet)
@@ -398,8 +445,10 @@ ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"),
   geom_smooth(method = lm, fullrange = FALSE) +
   labs(y = "Feeding Rate (bites/hr)", x = "Length (cm)", title = "Hourly feeding rate") + 
   theme_bw() + 
+  theme(strip.text = element_text(face = "italic")) +
   theme(plot.title = element_text(hjust = 0.5)) + 
   scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
+ggsave(here("figs/sp_fr_length.png"))
 ```
 
 ```{r}

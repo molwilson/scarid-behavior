@@ -19,21 +19,16 @@ library(here)
 library(tidyverse)
 library(lavaan)
 library(semPlot)
+library(piecewiseSEM)
 ```
 
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=FALSE) %>% select(-X)
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=FALSE) %>% select(-X)
-
-# recode phase and species with dummy variables
-# data <- data %>% mutate(spec.dum= 
-#                           ifelse(Species.Code=="stop", 1, 
-#                           (ifelse(Species.Code=="qup", 2,
-#                           (ifelse(Species.Code=="rbp",3,NA)))))) %>%
-#   mutate(phase.dum=ifelse(Phase=="i",1,2))
-
-
+sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=FALSE) %>% select(-X)
 ```
+
+# Full model layout
 
 ```{r}
 # define model pathways
@@ -52,13 +47,17 @@ sem_full <- '
 '
 ```
 
+# ID level SEMs
+
 ```{r}
-# testing partial SEMs
+# testing partial SEMs with ID - level dataset
 
 sem_df <- sum_id %>% 
-  filter(island!="Barbuda") %>%
+  # filter(island!="Barbuda") %>%
+  filter(species_code != "rbp") %>%
   select(fr, g_frac, species_code, phase, scar_bm, scar_den, carn30_bm, tot_bm, spear_daily, ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, int_scar, length_cm, lc_cover) %>% 
-  mutate(phase_dum=ifelse(phase=="i",1,2),
+  mutate(phase_dum=ifelse(phase=="i",0,1),
+         species_dum = ifelse(species_code=="stop",0,1),
          fr_sc = fr/100,
          scar_bm_sc = scar_bm/100,
          rugosity_sc = rugosity*10) %>%
@@ -94,11 +93,63 @@ sem3 <- '
 '
 
 
-fit <- sem(sem3, data=vet_df, missing="ML", std.lv=T, orthogonal=T)
+fit <- sem(sem1, data=sem_df, missing="ML", std.lv=T, orthogonal=T)
 varTable(fit)
 summary(fit, standardized=T, fit.measures=T, rsq=T)
 semPaths(fit)
 fitMeasures(fit, c("cfi","rmsea","srmr"))
 ```
 
+
+# Site-level SEM
+
+```{r}
+sem_df <- sum_ssp %>% 
+  select(fr_mean, species_code, phase, scar_bm, scar_den, carn30_bm, tot_bm, spear_daily, ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, int_scar_mean, length_m, lc_cover) %>% 
+  filter(fr_mean > 0,
+         species_code!="rbp") %>%
+  mutate(phase_dum = ifelse(phase=="i",0,1),
+         species_dum = ifelse(species_code=="stop",0,1),
+         fr_sc = fr_mean/100,
+         scar_bm_sc = scar_bm/100,
+         rugosity_sc = rugosity*10) %>%
+  na.omit()
+vet_df <- sem_df %>% filter(species_code=="qup")
+vir_df <- sem_df %>% filter(species_code=="stop")
+
+sem1 <- '
+  # latent variable indicators
+      risk =~ scar_bm_sc + scar_den + rugosity_sc + spear_daily
+      nutrition =~ ma_cover + ta_cover
+  # regressions
+      fr_sc ~ species_dum + length_m + phase_dum + nutrition + risk
+      rugosity_sc ~ lc_cover
+      lc_cover ~ ma_cover + ta_cover
+'
+
+sem2 <- '
+  # latent variable indicators
+      risk =~ scar_bm_sc + scar_den
+      nutrition =~ ma_cover + ta_cover
+  # regressions
+      fr_sc ~ species_dum + length_m + phase_dum + nutrition + risk
+'
+
+fit <- sem(sem2, data=sem_df, missing="ML", std.lv=T)
+varTable(fit)
+summary(fit, standardized=T, fit.measures=T)
+semPaths(fit, 'std', residuals = F)
+fitMeasures(fit, c("cfi","rmsea","srmr"))
+
+```
+
+# Piecewise SEM
+
+```{r}
+sum_id_nar <- sum_id %>% drop_na()
+psem1 <- psem(
+  lm(fr ~ phase + species_code + scar_bm + ta_cover, sum_id_nar),
+  lm(ta_cover ~ scar_bm, sum_id_nar))
+summary(psem1)
+```
 
