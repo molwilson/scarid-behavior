@@ -30,6 +30,10 @@ sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=FALSE) %
 
 # Full model layout
 
+```{r, echo=F, message=F, warning=F}
+knitr::include_graphics(here("figs/sem.png"))
+```
+
 ```{r}
 # define model pathways
 sem_full <- '

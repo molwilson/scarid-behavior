@@ -18,9 +18,9 @@ library(mgcv)
 library(car)
 
 sum_id_pca <- read.csv(here("data","sum_id_pca.csv"), stringsAsFactors=F) %>%
-  select(-X) 
+  select(-X) %>% na.omit()
 sum_ssp_pca <- read.csv(here("data","sum_ssp_pca.csv"), stringsAsFactors=F) %>%
-  select(-X) 
+  select(-X) %>% na.omit()
 ```
 
 
@@ -36,7 +36,7 @@ sum_ssp_pca <- read.csv(here("data","sum_ssp_pca.csv"), stringsAsFactors=F) %>%
 # Methods
 
 ## Data collection
-* Sites (map), timeline
+* Sites (13, map), timeline
 * Fish and benthic community data
 * Behavioral data:
     - Species: *Sparisoma viride* and *Scarus vetula*, initial and terminal phase greater than 15cm
