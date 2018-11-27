@@ -51,7 +51,7 @@ pca_all <- prcomp(na.omit(sum_site %>%
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
               # filter(island!="Barbuda") %>%
-              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, scar_bm, scar_den)),
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, scar_bm, scar_den, lc_cover, carn30_bm)),
   center = T,scale = T)
 autoplot(pca_all, data = sum_site, colour = 'island',
          # frame = T, frame.type = "norm",
@@ -292,4 +292,60 @@ lme1 <- lme(fr_mean ~ phase + length_m + scar_bm + pc1_bent + pc2_bent, data=sum
     na.action = na.omit
     )
 vif(lme1)
+```
+
+Site-level GAMM with pca_all
+```{r}
+m_data <- sum_ssp_pca %>% filter(species_code!="rbp")
+
+# Main effects only
+gamm1 <- gamm(fr_mean ~ species_code + s(length_m) + phase + s(pc1_all) + s(pc2_all), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           data = m_data
+           )
+summary(gamm1$gam)
+plot(gamm1$gam,pages=1)
+plot(gamm1$lme) # not too heteroskedastic?
+AIC(gamm1$lme)
+
+# Interactions
+gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_m, by = factor(species_code)) + s(pc2_all)  + s(pc1_all, by = factor(species_code)), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           data = m_data
+           )
+summary(gamm2$gam)
+plot(gamm2$gam,pages=1)
+plot(gamm2$lme) # not too heteroskedastic?
+AIC(gamm2$lme)
+# Slightly significant interaction between pc1_all and species_code=qup, but this has lower R2 than model with all main effects
+# length/species and pc2/species interactions were not significant
+
+# Reducing non-significant effects
+gamm3 <- gamm(fr_mean ~ species_code + phase + s(pc1_all) + s(pc2_all), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           data = m_data
+           )
+summary(gamm3$gam)
+plot(gamm3$gam,pages=1)
+plot(gamm3$lme) # not too heteroskedastic?
+AIC(gamm3$lme)
+
+# Adding pc1/species interaction back in to model with streamlined main effects
+gamm4 <- gamm(fr_mean ~ species_code + phase + s(pc1_all, by = factor(species_code)), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           data = m_data
+           )
+summary(gamm4$gam)
+plot(gamm4$gam,pages=1)
+plot(gamm4$lme) # not too heteroskedastic?
+AIC(gamm4$lme)
+
 ```
