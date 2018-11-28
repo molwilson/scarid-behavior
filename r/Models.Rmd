@@ -21,6 +21,8 @@ library(tidyverse)
 library(mgcv)
 library(car)
 library(ggfortify)
+library(xtable)
+library(itsadug)
 
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X)
@@ -256,20 +258,20 @@ _Model validity notes_:
 
 *need to add interaction terms*
 ```{r}
-gamm1 <- gamm(fr ~ species_code + phase + s(length_cm) + s(pc1_bent) + s(pc2_bent) + s(scar_bm) +
-                s(length_cm, by = as.numeric(species_code == "qup")) +
-                s(pc1_bent, by = as.numeric(species_code == "qup")) +
-                s(scar_bm, by = as.numeric(species_code == "qup")), 
-           family = gaussian(link=identity),
-           random = list(island=~1),
-           method = "REML",
-           weights = varIdent(form =~ 1 | species),
-           data = m_data
-           )
-summary(gamm1$gam)
-plot(gamm1$gam,pages=1)
-plot(gamm1$lme) # shows heteroskedasticity
-AIC(gamm1$lme)
+# gamm1 <- gamm(fr ~ species_code + phase + s(length_cm) + s(pc1_bent) + s(pc2_bent) + s(scar_bm) +
+#                 s(length_cm, by = as.numeric(species_code == "qup")) +
+#                 s(pc1_bent, by = as.numeric(species_code == "qup")) +
+#                 s(scar_bm, by = as.numeric(species_code == "qup")), 
+#            family = gaussian(link=identity),
+#            random = list(island=~1),
+#            method = "REML",
+#            weights = varIdent(form =~ 1 | species),
+#            data = m_data
+#            )
+# summary(gamm1$gam)
+# plot(gamm1$gam,pages=1)
+# plot(gamm1$lme) # shows heteroskedasticity
+# AIC(gamm1$lme)
 ```
 
 *Re: Nash et al. 2016: should I be aggregating data to the site level?*
@@ -348,4 +350,5 @@ plot(gamm4$gam,pages=1)
 plot(gamm4$lme) # not too heteroskedastic?
 AIC(gamm4$lme)
 
+gamtabs(gamm4, type="HTML")
 ```
