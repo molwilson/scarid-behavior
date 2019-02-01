@@ -284,12 +284,16 @@ sum_site <- sum_site %>%
 sum_id <- sum_id %>% 
   left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
+sum_site_sp <- sum_site_sp %>% 
+  left_join(site, by=c("island","site")) %>%
+  left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
 sum_site_sp_ph <- sum_site_sp_ph %>% 
   left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
 
 write.csv(sum_site,file=here("data/sum_site.csv"))
 write.csv(sum_id,file=here("data/sum_id.csv"))
+write.csv(sum_site_sp,file=here("data/sum_site_sp.csv"))
 write.csv(sum_site_sp_ph,file=here("data/sum_site_sp_ph.csv"))
 ```
 

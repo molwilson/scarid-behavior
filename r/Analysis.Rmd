@@ -109,7 +109,7 @@ $$fr(Antigua, S. vetula, i) = 1030-12*L$$
 $$fr(Bonaire, S. viride, i) = 1057-17*L$$
 $$fr(Bonaire, S. vetula, i) = 1347+10*L$$
 
-## Comparison to published equations
+# Comparison to published equations
 
 ## Predicted feeding rates and bite sizes from standard equations
 Bite sizes as predicted by Bruggemann/Bozec:
@@ -121,7 +121,7 @@ $$fr(Published, S. viride, i) = 1089-17*L-56 $$
   *(extra term because phase modifier is not used here (i=1))*
 $$fr(Published, S. vetula, initial) = 3329-33*L$$
 
-## adding predicted feeding rates from observed relationships
+## Adding predicted feeding rates from observed relationships
 
 ```{r}
 fish_fr <- fish %>% 
@@ -153,3 +153,79 @@ ggplot(filter(ag_melt, island == "Antigua"),
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ggsave(here("figs/grazing_imp.png"))
 ```
+
+# Bite content hypothesis
+
+Fish in high algal sites may be taking fewer bites because they can consume more algae per bite. Let's try and add a rough estimate of bite content as a function of algal canopy height.
+
+Notes/assumptions:
+* Using turf algal canopy height (for now, no macroalgal component - though S. viride does eat some macrogalgae)
+* Max bite height will be capped at radius of bite size ($\sqrt{BS}/\pi$)
+
+```{r}
+# grazing impact of fish from fish surveys
+fish_grazed <- fish_fr %>% 
+  left_join(select(sum_site, ta_canopy, site), by = "site") %>%
+  mutate(
+    bh_capped = ifelse(
+      ta_canopy < 2*sqrt(bs)/(22/7), ta_canopy, 2*sqrt(bs)/(22/7)), # if ta_canopy exceeds diameter of bite size, bite height is capped at bite size
+    bv = bs*ta_canopy,
+    bv_capped = bs*bh_capped,
+    vg = fr_pers*bv
+ )
+
+# grazing impact of fish from behavioral surveys
+sum_id_vg <- sum_id %>%
+  filter(species_code != "rbp") %>%
+  mutate(
+    bs = ifelse(species_code == "stop", 5.257*10^-4*length_cm^2, 4.013*10^-4*length_cm^2), # adding bite size equations from Mumby
+    bh_capped = ifelse(ta_canopy < 2*sqrt(bs)/(22/7), ta_canopy, 2*sqrt(bs)/(22/7)), # if ta_canopy exceeds diameter of bite size, bite height is capped at bite size
+    bv = bs*ta_canopy,
+    bv_capped = bs*bh_capped,
+    vg = fr*bv,
+    vg_capped = fr*bv_capped,
+    island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))
+) %>%
+  arrange(island)
+
+sum_ssp_vg <- sum_id_vg %>% 
+  group_by(site, island, species, species_code, phase) %>% 
+  summarize(
+    n=n(),
+    vg_mean=mean(vg),
+    vg_se=sd(vg)/sqrt(n),
+    vg_capped_mean=mean(vg_capped),
+    vg_capped_se=sd(vg_capped)/sqrt(n)
+    ) %>% 
+  select(-n)
+
+ggplot(filter(sum_ssp_grazed, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(title="Mean grazing impact by volume (initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 90, hjust = 1), 
+          plot.title = element_text(hjust = 0.5))
+
+ggplot(filter(sum_ssp_grazed, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_capped_mean)) +
+    geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_capped_mean-vg_capped_se, ymax=vg_capped_mean+vg_capped_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(title="Mean grazing impact by volume (capped height, initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 90, hjust = 1), 
+          plot.title = element_text(hjust = 0.5))
+```
+
+

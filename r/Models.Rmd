@@ -350,5 +350,5 @@ plot(gamm4$gam,pages=1)
 plot(gamm4$lme) # not too heteroskedastic?
 AIC(gamm4$lme)
 
-gamtabs(gamm4, type="HTML")
+# gamtabs(gamm4, type="HTML")
 ```

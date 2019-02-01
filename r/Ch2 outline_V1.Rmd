@@ -31,17 +31,18 @@ sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
 
 # Intro + motivation
 
-* Grazing by herbivorous fish is an established driver of coral reef health/dynamics
-* As reefs become increasingly degraded/threatened, there is growing interest in understanding how much herbivory is needed to sustain coral reef health (e.g Karr et al., McClanahan et al.)
+* Grazing by herbivorous fish is an established driver of coral reef health/dynamics.
+* As reefs become increasingly degraded/threatened, there is growing interest in understanding how much herbivory is needed to sustain coral reef health (e.g. Karr et al. 2015, McClanahan et al. 2011).
 * However, not all herbivores are the same in terms of their grazing impact…
-    * Recent developments in functional classifications, difference across species in terms of selectivity, etc. (e.g. Adam et al. 2018)
-* In addition to these inter-species differences in functional role, differences in herbivore behavior also affect grazing impact and may drive variation in herbivore function among individuals or across reef systems
-* Herbivore behavior has been shown to be impacted by…
-    * Predator presence (Catano, Madin)
+    * Recent developments in functional classifications, difference across species in terms of selectivity, etc. (e.g. Adam et al. 2018).
+* In addition to these inter-species differences in functional role, differences in herbivore behavior may also affect grazing impact and may drive variation in herbivore function among individuals or across reef systems.
+* Previous work has shown that herbivore behavior is sensitive to...
+    * Predator presence (and reef structure) (Catano, Madin)
     * Presence of other herbivores (Gil)
     * Resource availability (Carlson, Tootell)
-* But there is vary limited data on how herbivore feeding behaviors might vary across reef systems, as well as the environmental factors associated with grazing differences
-* Here we document variability in multiple components of scarid feeding behavior across reef sites in three Caribbean islands and explore/enhance our understanding of potential underlying drivers
+* But there is very limited data on how herbivore feeding behaviors might vary across reef systems, as well as the environmental factors associated with grazing differences.
+* Here we document variability in multiple components of scarid feeding behavior across reef sites in three Caribbean islands and explore potential underlying mechanisms, ecological impacts, and management implications.
+* We demonstrate a need for further experimental and modelling work to unpack these drivers and understand their ecological consequences.
 
 # Methods
 
@@ -243,9 +244,9 @@ grid.arrange(left = "Feeding rate (bites / minute)",
   arrangeGrob(
     arrangeGrob(s1, bottom = "Scarid biomass"), 
     arrangeGrob(s3, bottom = "Rugosity"),
-    arrangeGrob(s4, bottom = "EAM height"),
-    arrangeGrob(s5, bottom = "EAM % cover"),
-    arrangeGrob(s7, bottom = "MA % cover"),
+    arrangeGrob(s4, bottom = "Turf height"),
+    arrangeGrob(s5, bottom = "Turf % cover"),
+    arrangeGrob(s7, bottom = "Macro. % cover"),
     ncol=5, right = "S. viride"), 
   nrow=2) 
 ```
@@ -429,9 +430,9 @@ grid.arrange(left = "Feeding intensity (bites / foray)",
   arrangeGrob(
     arrangeGrob(s1, bottom = "Scarid biomass"), 
     arrangeGrob(s3, bottom = "Rugosity"),
-    arrangeGrob(s4, bottom = "EAM height"),
-    arrangeGrob(s5, bottom = "EAM % cover"),
-    arrangeGrob(s7, bottom = "MA % cover"),
+    arrangeGrob(s4, bottom = "Turf height"),
+    arrangeGrob(s5, bottom = "Turf % cover"),
+    arrangeGrob(s7, bottom = "Macro. % cover"),
     ncol=5, right = "S. viride"), 
   nrow=2) 
 ```
@@ -439,10 +440,8 @@ grid.arrange(left = "Feeding intensity (bites / foray)",
 ## PCA
 ```{r, echo=F, message=F, warning=F}
 pca_pred <- prcomp(na.omit(sum_site %>% 
-              remove_rownames %>% 
-              column_to_rownames(var="site") %>%
-              select(ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, rugosity, scar_den, 
-                     scar_bm, carn30_bm)),
+              select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy, scar_den, 
+                     scar_bm, carn30_bm, spear_daily)),
   center = T, scale = T)
 
 autoplot(pca_pred, data = sum_site, colour = 'island',
@@ -476,13 +475,13 @@ ggplot(filter(sum_ssp_pca, species_code != "rbp" & phase == "i"), aes(x = pc1_al
   theme_bw()
 ```
 
+
+
+
 ## GAMM results
 
-```{r, echo=F, message=F, warning=F}
-m_data <- sum_ssp_pca %>% filter(species_code!="rbp")
-```
-
 ```{r, eval=F, echo=F, message=F, warning=F}
+m_data <- sum_ssp_pca %>% filter(species_code!="rbp")
 # Main effects only
 gamm1 <- gamm(fr_mean ~ species_code + s(length_m) + phase + s(pc1_all) + s(pc2_all), 
            family = gaussian(link=identity),
@@ -523,6 +522,7 @@ AICc(gamm3$lme)
 ```
 
 ```{r, echo=F, message=F, warning=F}
+m_data <- sum_ssp_pca %>% filter(species_code!="rbp")
 # Length/species and PC1/species interactions
 gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_m, by = factor(species_code)) + s(pc1_all, by = factor(species_code)) + s(pc2_all), 
            family = gaussian(link=identity),
@@ -542,7 +542,7 @@ plot(gamm2$gam,pages=1)
     * Social feeding hypothesis: more time must be spent vigilant in smaller groups, potential compounding effect with overfishing/loss of herbivory
     * Nutrient limitation hypothesis: scarids must graze more (and more intensely) in sites with lower algal canopy heights and percent cover
     * Predation risk hypothesis: presence of large piscivores does not explain feeding trends, but risk from spearfishers may play a bigger role (able to target larger fish, i.e. those sampled here). (Incorporate rugosity here?)
-* Caveats + limitations: all these different factors are understandablycorrelated in observational work
+* Caveats + limitations: all these different factors are understandably correlated in observational work
     * room for experimental work to unpack/distinguish drivers
     * room (/need) for incorporation of behavior in coral reef grazing models, especially those used to set targets for minimum herbivore biomass levels, because these may look very different in different reef conditions.
 * Conservation + mgmt implications: multiple human impacts on reefs may affect herbivore behavior in different ways, spec. fishing + habitat degradation - which may have reinforcing/compounding negative effects on reef health

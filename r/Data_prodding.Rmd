@@ -155,6 +155,7 @@ autoplot(pca_pred, data = sum_site, colour = 'island',
     scale_color_manual(name="island", values=c("lightblue", "darkseagreen", "lightsalmon")) + 
     theme(legend.direction = 'horizontal', legend.position = 'top') +
     theme_minimal()
+ggsave(here("figs/pca_pred.png"))
 ```
 
 PCA for correlated (benthic only?) variables:
@@ -492,7 +493,7 @@ ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = leng
 ## Grazing as a function of site traits
 
 ```{r}
-ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = scar_bm,y=fr)) +
+ggplot(filter(sum_id, species_code != "rbp" & length_cm>=15 & length_cm<=30), aes(x = scar_bm,y=fr)) +
   facet_grid(.~species) +
   geom_smooth(method="loess") +
   geom_point(shape=18) +
@@ -503,7 +504,7 @@ ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=1
 
 
 ```{r,echo=FALSE,warning=FALSE}
-ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=16 & length_cm<=24), aes(x = scar_bm, y = fr, colour = island)) +
+ggplot(filter(sum_id, species_code != "rbp" & length_cm>=16 & length_cm<=24), aes(x = scar_bm, y = fr, colour = island)) +
   facet_grid(. ~ species) +
   geom_point(shape = 18) +
   geom_smooth(method = lm, fullrange=F) +
@@ -512,6 +513,8 @@ ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda" & length_cm>=1
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
 ```
+
+
 ```{r,echo=FALSE,warning=FALSE}
 ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), aes(x = scar_bm, y = fr, colour = phase)) +
   facet_grid(. ~ species) +
@@ -537,8 +540,6 @@ ggplot(filter(sum_id_pca, species_code != "rbp" & island != "Barbuda" & length_c
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5))
 ```
-
-
 
 ## Competitive interactions
 
@@ -574,33 +575,4 @@ summary(lme_fr)
 vif(lme_fr) # test VIF here, because I'm not sure how to do it in GAMM yet...? All low VIF (<3) when random = island, but when random = site, VIFs jump up (for scarid_den & pc2)
 ```
 
-## GAMM
-- for GAMMs - seems model results are the same whether random = site or island?
 
-```{r,eval=F}
-gamm<-gamm(fr~phase+s(length_cm)+s(pc1_bent)+s(pc2_bent)+s(scar_bm)+s(scar_den), 
-           family=gaussian(link=identity),
-           data=filter(sum_id_pca, species_code=="qup"),
-           random=list(site=~1),
-           method="REML"
-           )
-summary(gamm$gam)
-plot(gamm$gam,pages=1)
-```
-```{r,eval=F}
-gamm1<-gamm(fr_mean~phase+species+s(pc1_bent)+s(pc2_bent)+s(scar_bm)+s(scar_den), 
-           family=gaussian(link=identity),
-           data=filter(sum_ssp_pca, species_code!="rbp" & island!="Barbuda"),
-           random=list(site=~1),
-           method="REML"
-           )
-summary(gamm1$gam)
-AIC(gamm1$lme)
-plot(gamm1$gam,pages=1)
-
-```
-
-------------------------
-To Do as of Nov. 7  
-* boosted regression trees ecosphere 2017 adrians paper  
-* species as random effect  
