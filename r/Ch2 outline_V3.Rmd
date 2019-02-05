@@ -1,0 +1,153 @@
+---
+title: "Ch2 outline_V3"
+author: "Molly Wilson"
+date: "2/5/2019"
+output: html_document
+---
+
+```{r, echo=F, message=F, warning=F}
+library(startR)
+library(here)
+library(tidyverse)
+
+sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
+  select(-X) %>% 
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
+sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
+  select(-X) %>% 
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island) %>%
+  filter(fr <= 3000)
+sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+  select(-X) %>% 
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
+```
+
+# Intro + motivation
+
+* Grazing by herbivorous fish is an established driver of coral reef health/benthic dynamics
+* As reefs become increasingly degraded/threatened, there is growing interest in understanding how much herbivory is needed to sustain coral reef health (e.g. herbivore threshold papers - Karr et al. 2015, McClanahan et al. 2011)
+* However, not all herbivores are the same in terms of their grazing impact…
+    * Recent developments in functional classifications, difference across species in terms of feeding selectivity, morphology, etc. (e.g. Adam et al. 2018)
+* In addition to these inter-species differences in functional role, differences in herbivore behavior may also affect grazing impact and may drive variation in herbivore function among individuals or across reef systems
+* In understanding and predicting herbivore impact on reefs, current assumption is that grazing behaviors are constant within species (same species-level length~feeding rate relationships)
+* But there is very limited data on how herbivore feeding behaviors might vary across reef systems and whether we can accurately assume constant species roles at regional scales
+* Here we document variability in multiple components (*if I include foraging intensity as well as feeding rate...*) of scarid feeding behavior across reef sites in three Caribbean islands and discuss potential underlying mechanisms, ecological consequences, and management implications
+* We demonstrate a need for further experimental and modelling work to unpack these drivers and understand their ecological consequences
+* We urge for the incorporation of behavioral effects in coral reef herbivore management and caution against assuming constant species function across reef systems
+
+# Methods
+
+## Data collection
+* Sites (13 sites, 3 islands [map]), timeline of data collection
+* Fish and benthic community surveys
+* Observational behavioral data:
+    - Species: *Sparisoma viride* and *Scarus vetula*, initial and terminal phase greater than 15cm, focus on only initial phase here
+    - 2 minute follows, calibration period, outside of previously established FID
+    - Recording time budgets as well as bite rates during grazing forays (define)
+    - Discarded data of incomplete follows or where fish were visably disturbed/fled
+    - Timing of data collection distributed throughout day, 2 dives per site
+    - Define behavioral variables ([table])
+    
+## Analysis
+* Fish biomass using lenth-weight conversions (appendix)
+* Site-level behavioral summary stats taken from subset of individuals based on size to avoid bias
+* Biplots w predictors - loess smoothers (switch to something else?)
+* Bite content: calculated proxy for bite content by multiplying estimated bite sizes (based on species and length of each individual fish surveyed, equations from Bruggemann/Mumby) by site level averages of turf algal canopy height to account for potential differences in amount of algae consumed in low vs. high canopy sites
+
+# Results and discussion
+
+## Variation among sites in multiple components of feeding behavior
+Notes:  
+
+* Can remove color coding by island if this is distracting. Unsure whether I should be highlighting differences between islands or if I should just be highlighting variation among sites (mixed feedback on this)
+* Eventually I'll have a panel that shows differences in feeding rates, time spent feeding, and grazing intensity (trends are similar, but slightly different implications)  
+* (Will remove Rendezvous from S. vetula graph in final - no S. vetulas found at this site)  
+
+```{r, echo=F, message=F, warning=F}
+ggplot(filter(sum_ssp, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=fr_mean)) +
+    geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+    geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(title="Mean feeding rates of individuals (initial phase)", 
+         y="Feeding rate (bites/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 90, hjust = 1), 
+          plot.title = element_text(hjust = 0.5))
+```
+
+Notes:  
+
+* Can remove color coding by island if this is distracting. Unsure whether I should be highlighting differences between islands or if I should just be highlighting variation among sites (mixed feedback on this)
+* Eventually I'll have a panel that shows differences in feeding rates, time spent feeding, and grazing intensity (trends are similar, but slightly different implications)  
+* (Will remove Rendezvous from S. vetula graph in final - no S. vetulas found at this site)  
+
+## Several potential underlying mechanisms
+
+While we do not seek to conclusively establish mechanisms here, we discuss potential underlying mechanisms that could be driving these trends in herbivore feeding behaviors
+
+* Bite content/nutrition hypothesis: scarids in higher canopy sites are consuming more per bite, thus taking fewer bites - implications for spatial grazing impact. Previous work showing that scarids vary grazing with nutrient availability/distribution (Carlson, Tootell, Mumby, etc.)
+
+```{r, echo=F, message=F, warning=F}
+# grazing impact (vg ~ volume grazed) of fish from behavioral surveys
+sum_id_vg <- sum_id %>%
+  filter(species_code != "rbp") %>%
+  mutate(
+    bs = ifelse(species_code == "stop", 5.257*10^-4*length_cm^2, 4.013*10^-4*length_cm^2), # adding bite size equations from Mumby
+    bh_capped = ifelse(ta_canopy < 2*sqrt(bs)/(22/7), ta_canopy, 2*sqrt(bs)/(22/7)), # if ta_canopy exceeds diameter of bite size, bite height is capped at bite size
+    bv = bs*ta_canopy,
+    bv_capped = bs*bh_capped,
+    vg = fr*bv,
+    vg_capped = fr*bv_capped,
+    island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))
+) %>%
+  arrange(island)
+
+# summing by site, species, and phase
+sum_ssp_vg <- sum_id_vg %>% 
+  group_by(site, island, species, species_code, phase) %>% 
+  summarize(
+    n=n(),
+    vg_mean=mean(vg),
+    vg_se=sd(vg)/sqrt(n),
+    vg_capped_mean=mean(vg_capped),
+    vg_capped_se=sd(vg_capped)/sqrt(n)
+    ) %>% 
+  select(-n)
+
+ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(title="Mean grazing impact by volume (initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 90, hjust = 1), 
+          plot.title = element_text(hjust = 0.5))
+```
+
+* Social feeding hypothesis: more time must be spent vigilant in smaller groups, potential compounding effect with overfishing/loss of herbivory (e.g. Gil)
+* Predation risk hypothesis: presence of large piscivores does not explain feeding trends, but risk from spearfishers may play a bigger role (able to target larger fish, i.e. those sampled here). (Incorporate rugosity here - Rogers, Madin, Catano). Did not find strong evidence for this here, but carnivore biomass was strongly correllated with herbivore biomass and rugosity.
+
+## Ecological implications
+
+* Potential reinforcing feedback loops in degraded reefs if high algal/low scarid reefs also have less grazing impact per scarid
+    * Feeding intensity: less intense feeding/more distributed bites in degraded reefs may also reduce actual substrate made available to recruiting corals (~ grazing concentration lit. here)
+    
+## Management implications + future research needs
+
+* Limitations to this study: all these potential drivers/mechanisms are understandably correlated in observational work
+    * Room for experimental work to unpack/distinguish drivers
+* Need for incorporation of behavior in coral reef grazing models, especially those used to set targets for minimum herbivore biomass levels, because these may look very different in different reef conditions. Current paradigm of constant species-level grazing behaviors may be inaccurate. In Caribbean case, most models use Bonaire data which may not be representative of dynamics on more degraded Caribbean reefs.
+* Need for framework to help incorporate behavioral effects into ecosystem management
+* Conservation + mgmt implications: multiple human impacts on reefs may affect herbivore behavior in different ways, spec. fishing + habitat degradation - which may have reinforcing/compounding negative effects on reef health
