@@ -95,7 +95,7 @@ sum_id <- sum_id %>%
   left_join(bites, by="id") %>%
   mutate(
     br=bites/g_sec,
-    fr=bites/follow_sec*60*60,
+    fr=bites/follow_sec*60,
     tdb=bites/follow_sec*60*60*10.5
     ) %>%
   replace(is.na(.),0)
