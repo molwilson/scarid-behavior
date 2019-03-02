@@ -34,6 +34,8 @@ sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
   arrange(island)
 ```
 
+**Abstract:** Herbivorous fish increase coral growth and survival by grazing down algal competitors. As coral reef health continues to decline globally, maximizing herbivory on reefs has become a primary management goal. However, existing management targets assume consistent grazing behavior across different reef systems. Here I document the grazing behavior of two scarid species at 13 sites in Antigua, Barbuda, and Bonaire. My analyses show significant differences in overall feeding rates, time spent grazing, and intensity of grazing across reef sites, which may alter the ecological impact of a given scarid population. I propose several potential mechanisms for these grazing differences, including variations in bite content which may make bite rates a misleading measure of overall grazing impact. As we set management targets to enhance herbivory on coral reefs, it is critical that we are accurately estimating the grazing impact of scarid populations. This paper demonstrates the variability of grazing behavior across different reef sites and calls for further investigation of the drivers and ecological implications of these inconsistencies.
+
 ## Introduction
 
 Herbivorous fish play a critical role in coral reef ecosystems by supressing algae and facilitating coral growth, recruitment, and survival (). In recent decades, coral reefs have become increasingly threatened by anthropogenic impacts including the fishing down of herbivorous fish populations (). Increasing attention has been given to understanding how much herbivory is needed to sustain coral reef health and to identify thresholds of herbivore biomass that can be used to guide fisheries management targets (Karr et al. 2015, McClanahan et al. 2011)
@@ -63,7 +65,7 @@ At each site, I observed grazing behavior of two dominant scarid species, *Spari
     - Define behavioral variables ([table]): feeding rate, bite rate, feeding intensity
     
 ```{r}
-Variable <- c('Time spent grazing','Bite rate','Feeding rate','Feeding intensity')
+Variable <- c('Time spent grazing','Bite rate','Feeding rate','Grazing concentration')
 Definition <- c('Proportion of time spent grazing during follow','Bite rate while actively feeding','Bite rate over total follow time','Number of consecutive bites taken during single grazing foray')
 Unit <- c('fraction','bites/second','bites/minute','bites/foray')
 var.table <- data.frame(Variable,Definition,Unit)
@@ -80,8 +82,11 @@ kable(var.table)
 
 ## Results and discussion
 
-## Variation among sites in multiple components of feeding behavior
-Fig. X shows intraspecific variation in both feeding rate (bites per hour) and feeding intensity (bites per foray) among sites. (Bite rates while grazing were relatively constant, indicating that differences in overall feeding rates were driven by differences in the amount of time spent grazing).
+Feeding rates, time spent grazing, and grazing concentration varied significantly across sites for both *S. vetula* and *S. viride* populations (Fig. 2). [Fig. 2A also shows substantially lower feeding rates in most Antiguan (*S. vetula* and *S. viride*) and Barbudan (*S. vetula*) sites as compared standard values used in Caribbean herbivory models - *if I include reference lines...*]. Differences in site-level feeding rates stemmed from differences in the fraction of time that fish speng grazing (Fig. 2B) as opposed to differences in bite rates while activitely feeding, which remained relatively constant accross sites (appendix). 
+
+These behavioral variations may have important ecological consequences and mangement implications. If we use grazing data from one area to predict the impact of a given species in other parts of the region, we may be overlooking important behavioral differences and misrepresenting grazing levels of different scarid populations. Feeding rates are used in herbivory models to calculate the area grazed by a given fish community. In the Caribbean case, most standard feeding rate equations are obtained from data collected in Bonaire. My results suggest that applying Bonaire feeding rates to other Caribbean reef systems may overestimate grazing impact.
+
+Grazing concentration also plays a key role in determining the ecological impact of coral reef herbivores. More concentrated grazing may be more effective in removing algae and clearing substrate for growing or newly recruiting corals than bites dispersed throughout the reefscape. [**add citations here**]
 
 ```{r, eval = F, echo=F, message=F, warning=F}
 ggplot(filter(sum_ssp, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=fr_mean)) +
@@ -99,13 +104,14 @@ ggplot(filter(sum_ssp, species_code != "rbp" & phase == "i"), aes(x=factor(site,
           plot.title = element_text(hjust = 0.5))
 ```
 
-Notes:  
-
-* Can remove color coding by island if this is distracting. Unsure whether I should be highlighting differences between islands or if I should just be highlighting variation among sites (mixed feedback on this)
-
 
 ```{r, echo = F, message = F, warning = F}
 # Panel graph of site differences
+
+ref_qup15 <- (3329-33*15)/60 # published feeding rate (bites/min)
+ref_qup30 <- (3329-33*30)/60
+ref_stop15 <- (1089-17*15-56)/60
+ref_stop30 <- (1089-17*30-56)/60
 
 fr_qup <- 
   ggplot(filter(sum_ssp, species_code == "qup" & phase == "i"), 
@@ -114,6 +120,9 @@ fr_qup <-
   geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
+  #geom_abline(slope=0, intercept=ref_qup15,  col = "red",lty=2) +
+  #geom_abline(slope=0, intercept=ref_qup25,  col = "red",lty=2) +
+  #ylim(0, 50) +
   labs(y = "Feeding rate \n (bites/min)", 
        title = "S. vetula") +
   theme_bw() + 
@@ -132,6 +141,8 @@ fr_stop <-
   geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
+  #geom_abline(slope=0, intercept=ref_stop15,  col = "red",lty=2) +
+  #geom_abline(slope=0, intercept=ref_stop25,  col = "red",lty=2) +
   labs(y = "",
        # y = "S. vetula \nFeeding rate (bites/hr)", 
        title = "S. viride") +
@@ -181,14 +192,14 @@ br_stop <-
         axis.title.x = element_blank(),
         legend.position = "none")
 
-fb_qup <- 
+gfrac_qup <- 
   ggplot(filter(sum_ssp, species_code == "qup" & phase == "i"), 
-         aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
+         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
+  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
-  labs(y = "Feeding intensity\n(bites/foray)", 
+  labs(y = "Time grazing \n(fraction)", 
        x = "", 
        title = "") +
   theme_bw() + 
@@ -200,11 +211,11 @@ fb_qup <-
         axis.title.y = element_text(size=10),
         legend.position = "none")
 
-fb_stop <- 
+gfrac_stop <- 
   ggplot(filter(sum_ssp, species_code == "stop" & phase == "i"), 
-         aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
+         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
+  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
   labs(y = "",
@@ -218,14 +229,14 @@ fb_stop <-
         axis.title.x = element_blank(),
         legend.position = "none")
 
-gfrac_qup <- 
+fi_qup <- 
   ggplot(filter(sum_ssp, species_code == "qup" & phase == "i"), 
-         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
+         aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
+  geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
-  labs(y = "Time grazing \n(fraction)", 
+  labs(y = "Grazing concentration\n(bites/foray)", 
        x = "", 
        title = "") +
   theme_bw() + 
@@ -234,11 +245,11 @@ gfrac_qup <-
         axis.text.x = element_text(angle = 45, hjust = 1, size=7),
         legend.position = "none")
 
-gfrac_stop <- 
+fi_stop <- 
   ggplot(filter(sum_ssp, species_code == "stop" & phase == "i"), 
-         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
+         aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
+  geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
   labs(y = "",
@@ -254,8 +265,6 @@ legend_plot <-
   ggplot(filter(sum_ssp, species_code == "stop" & phase == "i"), 
          aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
-                 position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
   labs(y = "",
        x = "", 
@@ -274,14 +283,13 @@ legend <- get_legend(legend_plot)
 
 
 grid.arrange(
-  arrangeGrob(fr_qup, fr_stop, fb_qup, fb_stop, gfrac_qup, gfrac_stop, ncol=2, heights = c(1,1,1.5)), 
+  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1.5)), 
               arrangeGrob(legend), 
               ncol=2, widths = c(5,1))
 
 ```
 
-
-## Several potential underlying mechanisms
+The variations in grazing behaviors demonstrated here may be driven by several potential underlying mechanisms. Figure 3 shows the relationships between various reef characteristics and scarid feeding rate. Because study sites expectedly varied across a number of interrelated fish and benthic dimensions (PCA - appendix?), it is impossible to conclusively establish any explicit mechanisms here. Instead I present several hypotheses that may be driving these observed behavioral trends and discuss evidence for and implications of each.
 
 ```{r, echo=F, message=F, warning=F}
 fr_q1 <- ggplot(filter(sum_ssp, species_code == "qup" & phase == "i"), aes(x = scar_bm/1000, y = fr_mean)) +
@@ -475,9 +483,17 @@ grid.arrange(left = "Feeding rate (bites/min.)",
   nrow=2, heights = c(1,1.2)) 
 ```
 
-While we do not seek to conclusively establish mechanisms here, we discuss potential underlying mechanisms that could be driving these trends in herbivore feeding behaviors
+*Bite content hypothesis.* Differences in scarid grazing preferences can be driven by (local differences in) nutrient availability and distribution (Carlson, Tootell, Mumby, etc.). Algal communities on Caribbean reefs can vary greatly in terms of canopy height, percent cover, species composition, and nutrient content ().
 
-* Bite content/nutrition hypothesis: scarids in higher canopy sites are consuming more per bite, thus taking fewer bites - implications for spatial grazing impact. Previous work showing that scarids vary grazing with nutrient availability/distribution (Carlson, Tootell, Mumby, etc.)
+(no conclusive trends, but FR tended to decrease with increasing EAM canopy height and to some extent EAM and macroalgal percent cover)
+
+In higher canopy sites, scarids may be obtaining more biomass of food per bite than in areas with heavily cropped algae, requiring them to take fewer bites to obtain the same nutritional intake.
+
+Implications: 
+-maybe better metric than bite/feeding rate
+-reduced grazing impact if not clearing substrate
+-reinforcing loop
+
 
 ```{r, echo=F, message=F, warning=F}
 # grazing impact (vg ~ volume grazed) of fish from behavioral surveys
@@ -579,13 +595,20 @@ ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x = fr_mean
         )
 ```
 
-* Social feeding hypothesis: more time must be spent vigilant in smaller groups, potential compounding effect with overfishing/loss of herbivory (e.g. Gil)
-* Predation risk hypothesis: presence of large piscivores does not explain feeding trends, but risk from spearfishers may play a bigger role (able to target larger fish, i.e. those sampled here). (Incorporate rugosity here - Rogers, Madin, Catano). Did not find strong evidence for this here, but carnivore biomass was strongly correllated with herbivore biomass and rugosity.
+*Social feeding hypothesis.* more time must be spent vigilant in smaller groups, potential compounding effect with overfishing/loss of herbivory (e.g. Gil)
+
+*Predation risk hypothesis.* Previous work has documented the suppressive effect of predator presence on herbivore feeding rates (Madin, Catano, McCauley?). 
+- These studies have focused on natural predators (decoys or piscivore populations)
+- While I found no clear relationship between large (>30cm) piscivore biomass and feeding trends (appendix), risk of predation from spearfishers may play a larger role in determining scarid grazing behavior at the reefs studied here. All Antiguan and Barbudan sites experience some degree of spearfishing pressure, while spearfishing has been banned in Bonaire since the 1970s. The 15-30cm individuals used in my behavioral observations are approaching size refuge from most natural predators, but would be likely targets for spearfishers. Both *S. vetula* and *S. viride* are commonly harvested species in Antigua and Barbuda.
+
+- like with the social feeding hypothesis, spearfishing may have double impact of reducing fish and reducing grazing impact of remaining fish 
+
+- often interaction of rugosity (e.g. Madin, stay near structure)
+(Incorporate rugosity here - Rogers, Madin, Catano). Did not find strong evidence for this here, but carnivore biomass was strongly correllated with herbivore biomass and rugosity.
 
 ## Ecological implications
 
 * Potential reinforcing feedback loops in degraded reefs if high algal/low scarid reefs also have less grazing impact per scarid
-    * Feeding intensity: less intense feeding/more distributed bites in degraded reefs may also reduce actual substrate made available to recruiting corals (~ grazing concentration lit. here)
     
 ## Management implications + future research needs
 
@@ -594,7 +617,6 @@ ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x = fr_mean
 * Need for incorporation of behavior in coral reef grazing models, especially those used to set targets for minimum herbivore biomass levels, because these may look very different in different reef conditions. Current paradigm of constant species-level grazing behaviors may be inaccurate. In Caribbean case, most models use Bonaire data which may not be representative of dynamics on more degraded Caribbean reefs.
 * Need for framework to help incorporate behavioral effects into ecosystem management
 * Conservation + mgmt implications: multiple human impacts on reefs may affect herbivore behavior in different ways, spec. fishing + habitat degradation - which may have reinforcing/compounding negative effects on reef health
-
 
 
 # Potential additions:
