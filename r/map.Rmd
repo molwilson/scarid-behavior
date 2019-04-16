@@ -1,0 +1,30 @@
+---
+title: "Site map"
+author: "Molly Wilson"
+date: "3/2/2019"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(ggmap)
+
+map.world <- map_data("world")
+
+map.carib <- ggplot() +
+  geom_polygon(data = map.world, aes(x = long, y = lat, group = group))+
+  coord_cartesian(xlim = c(-100, -50),ylim = c(30,5)) +
+  labs(x = "", y="",title = "")
+
+ggplot() +
+  geom_polygon(data = map.world, aes(x = long, y = lat, group = group))+
+  coord_cartesian(xlim = c(-62, -60),ylim = c(18,17)) +
+  labs(x = "", y="",title = "")
+
+ggplot() +
+  theme_bw() +
+  geom_polygon(data = map.world, aes(x = long, y = lat, group = group))+
+  coord_equal(xlim = c(-100, -60),ylim = c(27,10)) +
+  labs(x = "", y="",title = "")
+```
+

@@ -64,8 +64,8 @@ At each site, I observed grazing behavior of two dominant scarid species, *Spari
     - Timing of data collection distributed throughout day, 2 dives per site
     - Define behavioral variables ([table]): feeding rate, bite rate, feeding intensity
     
-```{r}
-Variable <- c('Time spent grazing','Bite rate','Feeding rate','Grazing concentration')
+```{r, echo=F, message=F}
+Variable <- c('Time spent grazing','Bite rate','Feeding rate','Foray size')
 Definition <- c('Proportion of time spent grazing during follow','Bite rate while actively feeding','Bite rate over total follow time','Number of consecutive bites taken during single grazing foray')
 Unit <- c('fraction','bites/second','bites/minute','bites/foray')
 var.table <- data.frame(Variable,Definition,Unit)
@@ -82,9 +82,9 @@ kable(var.table)
 
 ## Results and discussion
 
-Feeding rates, time spent grazing, and grazing concentration varied significantly across sites for both *S. vetula* and *S. viride* populations (Fig. 2). [Fig. 2A also shows substantially lower feeding rates in most Antiguan (*S. vetula* and *S. viride*) and Barbudan (*S. vetula*) sites as compared standard values used in Caribbean herbivory models - *if I include reference lines...*]. Differences in site-level feeding rates stemmed from differences in the fraction of time that fish speng grazing (Fig. 2B) as opposed to differences in bite rates while activitely feeding, which remained relatively constant accross sites (appendix). 
+Feeding rates, time spent grazing, and grazing concentration varied significantly across sites within both *S. vetula* and *S. viride* populations (Fig. 2). [Fig. 2A also shows substantially lower feeding rates in most Antiguan (*S. vetula* and *S. viride*) and Barbudan (*S. vetula*) sites as compared standard values used in Caribbean herbivory models - *if I include reference lines...*]. Differences in site-level feeding rates stemmed from differences in the fraction of time that fish speng grazing (Fig. 2B) as opposed to differences in bite rates while activitely feeding, which remained relatively constant accross sites (appendix). Interspecific differences in feeding rates and grazing intensity reflect the different feeding morphologies/functional roles of *S. vetula* and *S. viride*.
 
-These behavioral variations may have important ecological consequences and mangement implications. If we use grazing data from one area to predict the impact of a given species in other parts of the region, we may be overlooking important behavioral differences and misrepresenting grazing levels of different scarid populations. Feeding rates are used in herbivory models to calculate the area grazed by a given fish community. In the Caribbean case, most standard feeding rate equations are obtained from data collected in Bonaire. My results suggest that applying Bonaire feeding rates to other Caribbean reef systems may overestimate grazing impact.
+These behavioral variations may have important ecological consequences and management implications. If we use grazing data from one area to predict the impact of a given species in other parts of the region, we may be overlooking important behavioral differences and misrepresenting grazing levels of different scarid populations. Feeding rates are used in herbivory models to calculate the area grazed by a given fish community. In the Caribbean case, most standard feeding rate equations are obtained from data collected in Bonaire. My results suggest that applying Bonaire feeding rates to other Caribbean reef systems may overestimate grazing impact.
 
 Grazing concentration also plays a key role in determining the ecological impact of coral reef herbivores. More concentrated grazing may be more effective in removing algae and clearing substrate for growing or newly recruiting corals than bites dispersed throughout the reefscape. [**add citations here**]
 
@@ -582,18 +582,20 @@ grid.arrange(
   arrangeGrob(vg_qup, vg_stop, ncol=2), 
               arrangeGrob(legend), 
               ncol=2, widths = c(5,1), heights = c(1))
+```
 
-
-
+```{r, eval = F}
 ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x = fr_mean, y = vg_mean)) +
   geom_point(shape=18) +
   facet_grid(~species) +
-  labs(y = "", 
+  labs(y = "Grazing impact (cm3/hr)",
+       x = "Average feeding rate (bites/min)"
        title = "") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5),
         )
 ```
+
 
 *Social feeding hypothesis.* more time must be spent vigilant in smaller groups, potential compounding effect with overfishing/loss of herbivory (e.g. Gil)
 
@@ -606,17 +608,36 @@ ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x = fr_mean
 - often interaction of rugosity (e.g. Madin, stay near structure)
 (Incorporate rugosity here - Rogers, Madin, Catano). Did not find strong evidence for this here, but carnivore biomass was strongly correllated with herbivore biomass and rugosity.
 
-## Ecological implications
+## Management implications + future research needs
 
 * Potential reinforcing feedback loops in degraded reefs if high algal/low scarid reefs also have less grazing impact per scarid
-    
-## Management implications + future research needs
 
 * Limitations to this study: all these potential drivers/mechanisms are understandably correlated in observational work
     * Room for experimental work to unpack/distinguish drivers
 * Need for incorporation of behavior in coral reef grazing models, especially those used to set targets for minimum herbivore biomass levels, because these may look very different in different reef conditions. Current paradigm of constant species-level grazing behaviors may be inaccurate. In Caribbean case, most models use Bonaire data which may not be representative of dynamics on more degraded Caribbean reefs.
 * Need for framework to help incorporate behavioral effects into ecosystem management
 * Conservation + mgmt implications: multiple human impacts on reefs may affect herbivore behavior in different ways, spec. fishing + habitat degradation - which may have reinforcing/compounding negative effects on reef health
+
+
+In conclusion...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Potential additions:

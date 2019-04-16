@@ -1,0 +1,59 @@
+---
+title: "Scarid Flight Response, Antigua"
+author: "Molly Wilson"
+date: "April 12, 2017"
+output: html_document
+---
+
+```{r}
+# prep
+library(lazyeval)
+library(here)
+library(tidyverse)
+library(reshape2)
+```
+```{r}
+# import, format
+fid <- read.csv(here("data","fid.csv"), stringsAsFactors=F) %>% 
+  select(-c(FID.ft,FID.in,Bump.distance.ft,Bump.distance.in)) %>%
+  janitor::clean_names()
+```
+
+# FID by species
+```{r}
+fid.sum <- fid %>%
+  group_by(species, phase) %>%
+  summarize(fid_mean = mean(fid_cm/100),
+            fid_max = max(fid_cm/100)) %>%
+  rename(max = fid_max,
+         mean = fid_mean) %>%
+  melt() %>%
+  rename(fid = value)
+
+ggplot(fid, aes(x = species, y = fid_cm)) +
+  geom_boxplot()
+
+ggplot(fid.sum %>% filter(phase == "Initial"), aes(x = species, y = fid, group = variable)) +
+  geom_point(aes(color = variable))
+```
+
+
+# FID by spear, site
+```{r}
+lm.fid <-lm(data=fid, fid_cm ~ spear + site + rugosity + pre_approach_activity)
+summary(lm.fid)
+
+ggplot(fid, aes(x = pre_approach_activity,y=fid_cm)) + geom_point()
+```
+
+# bump distance by spear, site
+```{r}
+bump <- FID %>% filter(Bump.distance.cm != 0)
+lmBump <-lm(data=bump,Bump.distance.cm~Spear + Site + Species + Rugosity + Pre.Approach.Activity)
+summary(lmBump)
+aov()
+
+ggplot(bump, aes(x=Spear,y=Bump.distance.cm)) + geom_point(aes(color=Species))
+```
+
+

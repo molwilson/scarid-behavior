@@ -191,6 +191,7 @@ Next I create a summary tables that averages variables within each site/species/
 ```{r,warning=FALSE, message= FALSE}
 # site averages
 sum_site <- sum_id %>% 
+  filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site,island) %>% 
   summarize(
     n=n(),
@@ -219,6 +220,7 @@ sum_site <- sum_id %>%
 
 # site averages by species
 sum_site_sp <- sum_id %>% 
+  filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site, island, species, species_code) %>% 
   summarize(
     n=n(),
@@ -247,6 +249,7 @@ sum_site_sp <- sum_id %>%
 
 # site averages by species and phase
 sum_site_sp_ph <- sum_id %>% 
+  filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site, island, species, species_code, phase) %>% 
   summarize(
     n=n(),

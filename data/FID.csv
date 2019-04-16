@@ -1,0 +1,63 @@
+Date,Time,Site,Mode,Spear,Depth,Rugosity,Species,Phase,Length.cm,Grouping,Pre-Approach Activity,Pre-Flight Activity,Approach distance.m,FID.ft,FID.in,FID.cm,Gun-adjusted,Flight Response,Notes,Bump distance.ft,Bump distance.in,Bump distance.cm
+2/15/17,8:20,Pillars,SCUBA,N,30,3,Redtail,Initial,30,None,Grazing,Grazing,5,6,1,185.42,,Bump,Bump,5,11,180.34
+2/15/17,8:20,Pillars,SCUBA,N,22,4,Queen,Terminal,45,None,Chasing,Chasing,,5,2,157.48,,,,,,0
+2/15/17,8:20,Pillars,SCUBA,N,,,Stoplight,Initial,20,None,Cleaning station,Grazing,4,9,12,304.8,,Shelter,Fled behind shelter,,,0
+2/15/17,8:20,Pillars,SCUBA,N,30,3,Redtail,Initial,35,None,Grazing,Grazing,9,5,4,162.56,,Bump,Bump,13,8,416.56
+2/15/17,8:20,Pillars,SCUBA,N,22,4,Queen,Terminal,52,None,Grazing,Grazing,6,3,2,96.52,,Shelter,Fled out of sight,,,0
+2/15/17,8:20,Pillars,SCUBA,Y,25,5,Queen,Terminal,28,None,Grazing,Grazing,7,12,10,391.16,,Shelter,Fled behind shelter,,,0
+2/15/17,8:20,Pillars,SCUBA,Y,25,4,Queen,Terminal,32,None,Grazing,Grazing,2.5,2,10,86.36,,Shelter,Fled behind shelter,,,0
+2/15/17,8:20,Pillars,SCUBA,Y,30,,Yellowtail,Initial,36,None,Grazing,Grazing,7,1,6,45.72,,Shelter,Fled behind shelter,,,0
+2/15/17,8:20,Pillars,SCUBA,Y,,3,Stoplight,Terminal,48,None,Swimming,Grazing,10,3,2,96.52,,Bump,Bump,12,2,370.84
+2/15/17,8:20,Pillars,SCUBA,Y,,,Redtail,Initial,34,None,Grazing,Grazing,7,3,8,111.76,,Shelter,Fled out of sight,,,0
+2/15/17,14:45,Pillars,SCUBA,N,30,4,Stoplight,Terminal,26,None,Swimming,Grazing,7,5,1,154.94,,Bump,Bump,20,3,617.22
+2/15/17,14:45,Pillars,SCUBA,N,36,2,Redtail,Initial,,None,Swimming,Grazing,6,4,5,134.62,,Bump,Bump,3,6,106.68
+2/15/17,14:45,Pillars,SCUBA,N,16,4,Queen,Terminal,42,None,Cleaning station,Cleaning station,8,8,0,243.84,,Shelter,Fled out of sight,,,0
+2/15/17,14:45,Pillars,SCUBA,N,32,1,Redtail,Initial,34,Pair,Grazing,Grazing,6,2,9,83.82,,Shelter,Fled behind shelter,,,0
+2/15/17,14:45,Pillars,SCUBA,N,22,4,Stoplight,Initial,39,None,Grazing,Grazing,,4,3,129.54,,Shelter,Fled out of sight,,,0
+2/15/17,14:45,Pillars,SCUBA,N,14,3,Stoplight,Initial,40,None,Grazing,Grazing,,12,0,365.76,,Bump,Bump,9,2,279.4
+2/15/17,15:13,Pillars,SCUBA,Y,14,3,Queen,Initial,22,None,Swimming,Swimming,7.5,6,8,203.2,,Shelter,Fled behind shelter,,,0
+2/15/17,15:13,Pillars,SCUBA,Y,23,4,Yellowtail,Terminal,22,None,Grazing,Grazing,,7,0,213.36,,Shelter,Fled behind shelter,,,0
+2/15/17,15:13,Pillars,SCUBA,Y,20,3,Yellowtail,Initial,32,None,Grazing,Grazing,7,9,9,297.18,,Bump,Bump,17,2,523.24
+2/15/17,15:13,Pillars,SCUBA,Y,29,2,Queen,Terminal,42,None,Grazing,Grazing,,16,1,490.22,,Shelter,Fled out of sight,,,0
+2/15/17,15:13,Pillars,SCUBA,Y,14,3,Queen,Initial,22,None,Swimming,Swimming,,18,2,553.72,,Shelter,Fled out of sight,,,0
+2/15/17,15:13,Pillars,SCUBA,Y,14,3,Redtail,Initial,22,Harem (15),Swimming,Swimming,4,7,1,215.9,,Shelter,Fled out of sight,,,0
+2/15/17,15:13,Pillars,SCUBA,Y,26,3,Stoplight,Initial,28,None,Grazing,Grazing,,16,3,495.3,,Shelter,Fled behind shelter,,,0
+2/15/17,15:13,Pillars,SCUBA,Y,32,1,Queen,Terminal,34,None,Swimming,Grazing,,8,4,254,,Bump,Bump,9,2,279.4
+2/15/17,15:13,Pillars,SCUBA,Y,15,2,Redtail,Terminal,23,None,Grazing,Grazing,5,6,7,200.66,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,N,20,2,Redband,Initial,19,None,Grazing,Grazing,6,6,11,210.82,,Shelter,Fled out of sight,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,N,18,2,Redtail,Initial,20,None,Grazing,Grazing,6,5,8,172.72,,Shelter,Fled out of sight,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,N,19,2,Redtail,Initial,19,None,Grazing,Grazing,9,6,5,195.58,,Bump,Bump,9,1,276.86
+2/16/17,15:35,Cade's Reef,SCUBA,N,17,2,Redtail,Initial,22,None,Grazing,Grazing,5,7,3,220.98,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,N,20,2,Queen,Initial,21,None,Grazing,Grazing,,8,6,259.08,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,N,20,2,Redband,Terminal,20,None,Swimming,Swimming,,10,11,332.74,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,N,19,2,Redband,Initial,18,None,Grazing,Grazing,,11,2,340.36,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,Y,16,1,Redtail,Terminal,21,None,Swimming,Swimming,6,10,2,309.88,,Shelter,Fled out of sight,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,Y,15,2,Redtail,Initial,20,None,Grazing,Grazing,5,6,0,182.88,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,Y,16,1,Redtail,Terminal,22,None,Grazing,Grazing,,10,2,309.88,,Bump,Bump,11,2,340.36
+2/16/17,15:35,Cade's Reef,SCUBA,Y,17,2,Redband,Initial,20,None,Grazing,Grazing,,0,2,5.08,,Shelter,Fled behind shelter,,,0
+2/16/17,15:35,Cade's Reef,SCUBA,Y,15,3,Queen,Initial,21,None,Grazing,Grazing,,1,0,30.48,,Shelter,Fled behind shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,29,3,Yellowtail,Initial,35,None,Grazing,Grazing,5,8,10,269.24,,Shelter,Fled behind shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,25,4,Queen,Terminal,25,None,Swimming,Swimming,,9,9,297.18,,Bump,Bump,13,7,414.02
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,32,2,Stoplight,Initial,39,None,Grazing,Grazing,,7,8,233.68,,Shelter,Fled behind shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,34,3,Stoplight,Initial,42,None,Swimming,Swimming,4,7,2,218.44,,Shelter,Slow flee behind rock,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,30,4,Stoplight,Terminal,43,None,Hover,Hover,4,5,4,162.56,,Shelter,"Shelter, then bump",9,10,299.72
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,18,3,Queen,Initial,35,Pair,Grazing,Grazing,4,6,5,195.58,,Shelter,Fled behind shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,20,3,Stoplight,Initial,35,None,Grazing,Grazing,,14,8,447.04,,Shelter,Fled behind shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,22,1,Redtail,Terminal,30,None,Grazing,Grazing,,12,3,373.38,,Bump,Bump,19,4,589.28
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,25,3,Yellowtail,Initial,48,None,Grazing,Swimming,6,14,7,444.5,,Bump,Bump,17,0,518.16
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,22,2,Redtail,Initial,28,None,Grazing,Grazing,,5,3,160.02,,Shelter,Shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,23,3,Redband,Initial,20,None,Grazing,Grazing,,6,4,193.04,,Bump,Bump,8,3,251.46
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,24,4,Stoplight,Initial,23,None,Grazing,Grazing,,1,0,30.48,,Bump,Bump,15,6,472.44
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,28,3,Stoplight,Terminal,32,None,Grazing,Grazing,3,5,8,172.72,,Out of sight,"Slow flee, C/OOS",,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,30,3,Queen,Initial,38,None,Grazing,Grazing,,11,7,353.06,,Open water,OOS/open water,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,35,2,Redtail,Initial,38,None,Grazing,Grazing,,7,6,228.6,,Out of sight,OOS,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,25,4,Queen,Initial,41,None,Grazing,Grazing,,5,8,172.72,,Shelter,Shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,25,4,Queen,Terminal,50,None,Grazing,Grazing,,17,3,525.78,,Bump,Bump,16,2,492.76
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,24,4,Stoplight,Terminal,25,None,Cleaning station,Cleaning station,,2,9,83.82,,Shelter,Shelter,,,0
+2/18/17,14:40,Mermaid Gardens,SCUBA,N,16,3,Redtail,Initial,27,None,Grazing,Grazing,,6,1,185.42,,Shelter,Shelter,,,0
+2/19/17,12:00,Mermaid Gardens,SCUBA,Y,32,4,Queen,Terminal,42,None,Hover,Hover,3,16,3,495.3,,Shelter,Shelter,,,0
+2/19/17,12:00,Mermaid Gardens,SCUBA,Y,35,4,Queen,Initial,39,None,Grazing,Grazing,5,8,2,248.92,,Shelter,Shelter,,,0
+2/20/17,13:00,Mermaid Gardens,SCUBA,Y,31,3,Redband,Initial,22,None,Grazing,Grazing,5,5,7,170.18,,Shelter,Shelter,,,0
+2/21/17,14:00,Mermaid Gardens,SCUBA,Y,35,3,Yellowtail,Initial,40,None,Grazing,Grazing,,8,7,261.62,,Shelter,Shelter,,,0
+2/22/17,15:00,Mermaid Gardens,SCUBA,Y,33,3,Stoplight,Initial,22,None,Hover,Hover,,14,3,434.34,,Shelter,Shelter,,,0
+2/23/17,16:00,Mermaid Gardens,SCUBA,Y,36,3,Redtail,Initial,35,None,Grazing,Grazing,,10,9,327.66,,Shelter,Shelter,,,0
