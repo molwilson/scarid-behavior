@@ -131,7 +131,7 @@ fr_qup <-
         strip.text = element_text(face = "italic"), 
         axis.text.x=element_blank(),
         axis.title.x = element_blank(),
-        axis.title.y = element_text(size=10),
+        axis.title.y = element_text(size=8),
         legend.position = "none")
 
 fr_stop <- 
@@ -170,7 +170,7 @@ br_qup <-
         strip.text = element_text(face = "italic"), 
         axis.text.x=element_blank(),
         axis.title.x = element_blank(),
-        axis.title.y = element_text(size=10),
+        axis.title.y = element_text(size=8),
         legend.position = "none")
 
 br_stop <- 
@@ -208,7 +208,7 @@ gfrac_qup <-
         strip.text = element_text(face = "italic"), 
         axis.text.x=element_blank(),
         axis.title.x = element_blank(),
-        axis.title.y = element_text(size=10),
+        axis.title.y = element_text(size=8),
         legend.position = "none")
 
 gfrac_stop <- 
@@ -236,12 +236,12 @@ fi_qup <-
   geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues") +
-  labs(y = "Grazing concentration\n(bites/foray)", 
+  labs(y = "Foray length\n(bites/foray)", 
        x = "", 
        title = "") +
   theme_bw() + 
   theme(plot.margin = margin(0, 0, 0, 5, unit = "pt"),
-        axis.title.y = element_text(size=10),
+        axis.title.y = element_text(size=8),
         axis.text.x = element_text(angle = 45, hjust = 1, size=7),
         legend.position = "none")
 
@@ -283,10 +283,16 @@ legend <- get_legend(legend_plot)
 
 
 grid.arrange(
-  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1.5)), 
+  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, br_qup, br_stop, fi_qup, fi_stop, ncol=2, heights = c(1.5,1.5,1.5,3)), 
               arrangeGrob(legend), 
               ncol=2, widths = c(5,1))
 
+g <- arrangeGrob(
+  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, br_qup, br_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1,1.5)), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1))
+
+ggsave(here("figs/behavior_panel.png"),g)
 ```
 
 The variations in grazing behaviors demonstrated here may be driven by several potential underlying mechanisms. Figure 3 shows the relationships between various reef characteristics and scarid feeding rate. Because study sites expectedly varied across a number of interrelated fish and benthic dimensions (PCA - appendix?), it is impossible to conclusively establish any explicit mechanisms here. Instead I present several hypotheses that may be driving these observed behavioral trends and discuss evidence for and implications of each.
