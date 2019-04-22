@@ -244,8 +244,7 @@ sum_site_sp <- sum_id %>%
     int_hetscar_se=sd(int_hetscar)/sqrt(n), 
     int_dam_mean=mean(int_dam),
     int_dam_se=sd(int_dam)/sqrt(n)
-    ) %>% 
-  select(-n) 
+    ) 
 
 # site averages by species and phase
 sum_site_sp_ph <- sum_id %>% 
@@ -275,8 +274,10 @@ sum_site_sp_ph <- sum_id %>%
     int_dam_se=sd(int_dam)/sqrt(n),
     length_m = mean(length_cm),
     length_se = sd(length_cm)/sqrt(n)
-    ) %>% 
-  select(-n)
+    )
+
+
+test <- sum_id %>% filter(site=="Pallaster Mid")
 ```
 
 ### 1_3 Join datasets, print .csv
