@@ -187,8 +187,11 @@ sum_id_vg <- sum_id %>%
     island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))
 ) %>%
   arrange(island)
+test <- sum_id_vg %>% filter(site=="Pillars") %>% select(species, phase, length_cm, fr, ta_canopy, vg)
 
+# grazing impact averaged across individuals at each site (selecting for size 15-30cm)
 sum_ssp_vg <- sum_id_vg %>% 
+  filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site, island, species, species_code, phase) %>% 
   summarize(
     n=n(),
@@ -199,7 +202,7 @@ sum_ssp_vg <- sum_id_vg %>%
     ) %>% 
   select(-n)
 
-ggplot(filter(sum_ssp_grazed, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
     geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
     geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
                  position=position_dodge(.9)) +
@@ -213,7 +216,7 @@ ggplot(filter(sum_ssp_grazed, species_code != "rbp" & phase == "i"), aes(x=facto
           axis.text.x = element_text(angle = 90, hjust = 1), 
           plot.title = element_text(hjust = 0.5))
 
-ggplot(filter(sum_ssp_grazed, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_capped_mean)) +
+ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_capped_mean)) +
     geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
     geom_errorbar(aes(ymin=vg_capped_mean-vg_capped_se, ymax=vg_capped_mean+vg_capped_se), width=.2,
                  position=position_dodge(.9)) +

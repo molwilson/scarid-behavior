@@ -512,6 +512,7 @@ sum_id_vg <- sum_id %>%
 
 # summing by site, species, and phase
 sum_ssp_vg <- sum_id_vg %>% 
+  filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site, ta_canopy, island, species, species_code, phase) %>% 
   summarize(
     n=n(),
