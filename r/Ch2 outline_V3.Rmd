@@ -487,6 +487,13 @@ grid.arrange(left = "Feeding rate (bites/min.)",
   arrangeGrob(fr_q1, fr_q3, fr_q4, fr_q5, fr_q7, ncol=5, right = label_vet),
   arrangeGrob(fr_s1, fr_s3, fr_s4, fr_s5, fr_s7, ncol=5, right = label_vir), 
   nrow=2, heights = c(1,1.2)) 
+
+g <- grid.arrange(left = "Feeding rate (bites/min.)",
+  arrangeGrob(fr_q1, fr_q3, fr_q4, fr_q5, fr_q7, ncol=5, right = label_vet),
+  arrangeGrob(fr_s1, fr_s3, fr_s4, fr_s5, fr_s7, ncol=5, right = label_vir), 
+  nrow=2, heights = c(1,1.2)) 
+
+ggsave(here("figs/biplot_panel.png"),g)
 ```
 
 *Bite content hypothesis.* Differences in scarid grazing preferences can be driven by (local differences in) nutrient availability and distribution (Carlson, Tootell, Mumby, etc.). Algal communities on Caribbean reefs can vary greatly in terms of canopy height, percent cover, species composition, and nutrient content ().
