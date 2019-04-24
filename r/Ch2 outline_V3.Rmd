@@ -108,7 +108,8 @@ ggplot(filter(sum_ssp, species_code != "rbp" & phase == "i"), aes(x=factor(site,
 ```{r, echo = F, message = F, warning = F}
 # Panel graph of site differences
 
-ref_qup15 <- (3329-33*15)/60 # published feeding rate (bites/min)
+ # published feeding rate (bites/min) for reference lines if needed
+ref_qup15 <- (3329-33*15)/60
 ref_qup30 <- (3329-33*30)/60
 ref_stop15 <- (1089-17*15-56)/60
 ref_stop30 <- (1089-17*30-56)/60
@@ -606,73 +607,7 @@ g <- grid.arrange(
 ggsave(here("figs/bc_bar_panel.png"),g)
 ```
 
-```{r}
-# geom_point version
-# keep this to get legend for panel
-vg_facet <- ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
-    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +
-    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
-                 position=position_dodge(.9)) +
-    facet_grid(~species) +
-    labs(title="Mean grazing impact by volume (initial phase)", 
-         y="Grazing impact (cm3/hr)", 
-         x="Site") +
-    theme_bw() +
-    theme(strip.text = element_text(face = "italic"), 
-          axis.text.x = element_text(angle = 45, hjust = 1)
-          )
 
-vg_qup <- ggplot(filter(sum_ssp_vg, species_code == "qup" & phase == "i"), 
-                 aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
-    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +
-    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
-                 position=position_dodge(.9)) +
-  labs(y = expression('Grazing impact (cm'^3*'/hr)'), 
-       x = "", 
-       title = "S. vetula") +
-  theme_bw() + 
-  theme(plot.margin = margin(1, 0, 0, 5, unit = "pt"),
-        axis.title.y = element_text(size=10),
-        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
-        legend.position = "none",
-        plot.title = element_text(hjust = 0.5, face = "italic")
-        )
-
-vg_stop <- ggplot(filter(sum_ssp_vg, species_code == "stop" & phase == "i"), 
-                  aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
-    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +    
-    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
-                 position=position_dodge(.9)) +
-  labs(y = "",
-       x = "", 
-       title = "S. viride") +
-  theme_bw() + 
-  theme(plot.margin = margin(1, 1, 0, 0, unit = "pt"),
-        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
-        legend.position = "none",
-        plot.title = element_text(hjust = 0.5, face = "italic")
-        )
-
-get_legend<-function(myggplot){
-  tmp <- ggplot_gtable(ggplot_build(myggplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  return(legend)
-  }
-legend <- get_legend(vg_facet)
-
-grid.arrange(
-  arrangeGrob(vg_qup, vg_stop, ncol=2), 
-              arrangeGrob(legend), 
-              ncol=2, widths = c(5,1), heights = c(1))
-
-g <- grid.arrange(
-  arrangeGrob(vg_qup, vg_stop, ncol=2), 
-              arrangeGrob(legend), 
-              ncol=2, widths = c(5,1), heights = c(1))
-  
-ggsave(here("figs/bc_point_panel.png"),g)
-```
 
 
 ```{r, eval = F}
