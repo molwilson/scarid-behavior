@@ -154,6 +154,53 @@ ggplot(filter(ag_melt, island == "Antigua"),
 ggsave(here("figs/grazing_imp.png"))
 ```
 
+
+Testing for variance in behavior variables among sites
+```{r}
+
+sum_id_stop <- sum_id %>%
+  filter(species_code=="stop" & length_cm > 15 & length_cm < 30 & phase == "i") %>%
+  mutate(site = as.factor(site))
+sum_id_qup <- sum_id %>%
+  filter(species_code=="qup" & length_cm > 15 & length_cm < 30 & phase == "i" ) %>%
+  mutate(site = as.factor(site))
+
+# feeding rates
+leveneTest(fr ~ site, data = sum_id_stop) # variances are slightly heteroskedastic, p ~ 0.04, use KW instead of ANOVA
+kruskal.test(fr ~ site, data = sum_id_stop) # significant variation across groups
+
+leveneTest(fr ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05, can use ANOVA
+aov_fr_qup <- aov(fr ~ site, data = sum_id_qup) 
+summary.aov(aov_fr_qup) # significant variation across sites
+
+# bite rates
+leveneTest(br ~ site, data = sum_id_stop) # variances are heteroskedastic, p < 0.05
+kruskal.test(br ~ site, data = sum_id_stop) # no significant variation across groups
+
+leveneTest(br ~ site, data = sum_id_qup) # variances are are heteroskedastic, p < 0.05
+kruskal.test(br ~ site, data = sum_id_qup) # no significant variation
+
+# time spent feeding
+leveneTest(g_frac ~ site, data = sum_id_stop) # variances are homogenous, p > 0.05
+aov_g_frac_qup <- aov(g_frac ~ site, data = sum_id_stop) 
+summary.aov(aov_g_frac_qup) # significant variation across sites
+
+leveneTest(g_frac ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05
+aov_g_frac_qup <- aov(g_frac ~ site, data = sum_id_qup) 
+summary.aov(aov_g_frac_qup) # significant variation across sites
+
+# foray length
+leveneTest(for_bites ~ site, data = sum_id_stop) # variances are homogenous, p > 0.05
+aov_for_bites_stop <- aov(for_bites ~ site, data = sum_id_stop) 
+summary.aov(aov_for_bites_stop) # significant variation across sites
+
+leveneTest(for_bites ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05
+aov_for_bites_qup <- aov(for_bites ~ site, data = sum_id_qup) 
+summary.aov(aov_for_bites_qup) # significant variation across sites
+
+```
+
+
 # Bite content hypothesis
 
 Fish in high algal sites may be taking fewer bites because they can consume more algae per bite. Let's try and add a rough estimate of bite content as a function of algal canopy height.
@@ -231,4 +278,71 @@ ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(si
           plot.title = element_text(hjust = 0.5))
 ```
 
+```{r}
+# geom_point version
+# keep this to get legend for panel
+vg_facet <- ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    labs(title="Mean grazing impact by volume (initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 45, hjust = 1)
+          )
+
+vg_qup <- ggplot(filter(sum_ssp_vg, species_code == "qup" & phase == "i"), 
+                 aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+  labs(y = expression('Grazing impact (cm'^3*'/hr)'), 
+       x = "", 
+       title = "S. vetula") +
+  theme_bw() + 
+  theme(plot.margin = margin(1, 0, 0, 5, unit = "pt"),
+        axis.title.y = element_text(size=10),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "italic")
+        )
+
+vg_stop <- ggplot(filter(sum_ssp_vg, species_code == "stop" & phase == "i"), 
+                  aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +    
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+  labs(y = "",
+       x = "", 
+       title = "S. viride") +
+  theme_bw() + 
+  theme(plot.margin = margin(1, 1, 0, 0, unit = "pt"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "italic")
+        )
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+  }
+legend <- get_legend(vg_facet)
+
+grid.arrange(
+  arrangeGrob(vg_qup, vg_stop, ncol=2), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1), heights = c(1))
+
+g <- grid.arrange(
+  arrangeGrob(vg_qup, vg_stop, ncol=2), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1), heights = c(1))
+  
+ggsave(here("figs/bc_point_panel.png"),g)
+```
 
