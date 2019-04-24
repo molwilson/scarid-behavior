@@ -484,11 +484,6 @@ fr_s7 <- ggplot(filter(sum_ssp, species_code == "stop" & phase == "i"), aes(x = 
 label_vet = textGrob("S. vetula", gp=gpar(fontface="italic"), rot=270)
 label_vir = textGrob("S. viride", gp=gpar(fontface="italic"), rot=270)
 
-grid.arrange(left = "Feeding rate (bites/min.)",
-  arrangeGrob(fr_q1, fr_q3, fr_q4, fr_q5, fr_q7, ncol=5, right = label_vet),
-  arrangeGrob(fr_s1, fr_s3, fr_s4, fr_s5, fr_s7, ncol=5, right = label_vir), 
-  nrow=2, heights = c(1,1.2)) 
-
 g <- grid.arrange(left = "Feeding rate (bites/min.)",
   arrangeGrob(fr_q1, fr_q3, fr_q4, fr_q5, fr_q7, ncol=5, right = label_vet),
   arrangeGrob(fr_s1, fr_s3, fr_s4, fr_s5, fr_s7, ncol=5, right = label_vir), 
@@ -594,11 +589,6 @@ get_legend<-function(myggplot){
   }
 legend <- get_legend(vg_facet)
 
-grid.arrange(
-  arrangeGrob(vg_qup, vg_stop, ncol=2), 
-              arrangeGrob(legend), 
-              ncol=2, widths = c(5,1), heights = c(1))
-
 g <- grid.arrange(
   arrangeGrob(vg_qup, vg_stop, ncol=2), 
               arrangeGrob(legend), 
@@ -610,7 +600,7 @@ ggsave(here("figs/bc_bar_panel.png"),g)
 
 
 
-```{r, eval = F}
+```{r, eval = F, echo = F, message = F}
 ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x = fr_mean, y = vg_mean)) +
   geom_point(shape=18) +
   facet_grid(~species) +
@@ -675,14 +665,14 @@ pca_pred <- prcomp(na.omit(sum_site %>%
                      scar_bm, carn30_bm)),
   center = T, scale = T)
 
-autoplot(pca_pred, data = sum_site, colour = 'island',
+autoplot(pca_pred, data = sum_site, shape = 'island', colour = 'island',
          loadings = T, loadings.colour = 'gray',
          loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
             loadings.label.repel = T) +
-    scale_color_brewer(palette = "Blues") +
+    scale_color_manual(values = c("cadetblue3","cadetblue3","cadetblue3")) +
     theme_bw() +
     theme(legend.title = element_blank())
-ggsave(here("figs/pca_pred.png"))
+ggsave(here("figs/pca_pred.png"), width = 8, height = 5)
 
 sum_site <- sum_site %>% 
   bind_cols(as.data.frame(pca_pred$x) %>% 
@@ -796,7 +786,7 @@ gtab_fr <- as.data.frame(rbind(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11)) %>% setNames
 
 ```{r, echo=F, message=F}
 kable(gtab_fr[1:4, ])
-plot(gamm3$gam,pages=1)
+plot(gamm10$gam,pages=1)
 ```
 
 ### Predicting feeding intensity:

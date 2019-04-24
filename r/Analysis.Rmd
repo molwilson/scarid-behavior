@@ -167,36 +167,36 @@ sum_id_qup <- sum_id %>%
 
 # feeding rates
 leveneTest(fr ~ site, data = sum_id_stop) # variances are slightly heteroskedastic, p ~ 0.04, use KW instead of ANOVA
-kruskal.test(fr ~ site, data = sum_id_stop) # significant variation across groups
+kruskal.test(fr ~ site, data = sum_id_stop) # significant variation across sites, p < 0.001
 
 leveneTest(fr ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05, can use ANOVA
 aov_fr_qup <- aov(fr ~ site, data = sum_id_qup) 
-summary.aov(aov_fr_qup) # significant variation across sites
+summary.aov(aov_fr_qup) # significant variation across sites, p < 0.001
 
 # bite rates
 leveneTest(br ~ site, data = sum_id_stop) # variances are heteroskedastic, p < 0.05
-kruskal.test(br ~ site, data = sum_id_stop) # no significant variation across groups
+kruskal.test(br ~ site, data = sum_id_stop) # no significant variation, p > 0.5
 
 leveneTest(br ~ site, data = sum_id_qup) # variances are are heteroskedastic, p < 0.05
-kruskal.test(br ~ site, data = sum_id_qup) # no significant variation
+kruskal.test(br ~ site, data = sum_id_qup) # no significant variation, p > 0.5
 
 # time spent feeding
 leveneTest(g_frac ~ site, data = sum_id_stop) # variances are homogenous, p > 0.05
 aov_g_frac_qup <- aov(g_frac ~ site, data = sum_id_stop) 
-summary.aov(aov_g_frac_qup) # significant variation across sites
+summary.aov(aov_g_frac_qup) # significant variation across sites, p < 0.001
 
 leveneTest(g_frac ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05
 aov_g_frac_qup <- aov(g_frac ~ site, data = sum_id_qup) 
-summary.aov(aov_g_frac_qup) # significant variation across sites
+summary.aov(aov_g_frac_qup) # significant variation across sites, p < 0.001
 
 # foray length
 leveneTest(for_bites ~ site, data = sum_id_stop) # variances are homogenous, p > 0.05
 aov_for_bites_stop <- aov(for_bites ~ site, data = sum_id_stop) 
-summary.aov(aov_for_bites_stop) # significant variation across sites
+summary.aov(aov_for_bites_stop) # significant variation across sites, p < 0.001
 
 leveneTest(for_bites ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05
 aov_for_bites_qup <- aov(for_bites ~ site, data = sum_id_qup) 
-summary.aov(aov_for_bites_qup) # significant variation across sites
+summary.aov(aov_for_bites_qup) # significant variation across sites, p < 0.001
 
 ```
 
