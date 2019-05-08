@@ -488,6 +488,6 @@ site <- fish_site %>%
   left_join(human,by="site")
 
 write.csv(site,file=here("data/site.csv"))
-write.csv(sp_site,file=here("data/sp_site.csv"))
+write.csv(sp_site,file=here("data/sp_site.csv")) # for later calculating conspecifics
 write.csv(fish,file=here("data/fish.csv")) # for predicting grazing impact of observed fish communities at each site (see Analysis.rmd)
 ```

@@ -42,7 +42,7 @@ sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X) %>%
   filter(length_cm>=15)
-sum_site_sp_ph <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+sum_ssp <- read.csv(here("data","sum_ssp.csv"), stringsAsFactors=F) %>%
   select(-X) 
 fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
   select(-X) 
@@ -78,7 +78,7 @@ ggplot(filter(sample, species_code!="rbp" & phase == "i"),
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-Need to determine appropriate size range for comparison. Because they are not evenly distributed (i.e. larger fish in Bonaire, smaller in Barbuda), I will likely want to compare length-feeding relationships as opposed to pooled averages
+Need to determine appropriate size range for comparison. Because they are not quite evenly distributed (i.e. larger fish in Bonaire, smaller in Barbuda), I will likely want to compare length-feeding relationships as opposed to pooled averages
 
 ```{r}
 ggplot(filter(sum_id, species_code!="rbp" & phase == "i" & length_cm<=30 & length_cm>=15), aes(x = length_cm)) +
@@ -96,7 +96,7 @@ Potential predictor variables are site-level fish, benthic, and rugosity values.
 First, check distribution of predictor variables of interest: not very normally distributed...
 ```{r,warning=FALSE,echo=FALSE}
 pred <- sum_site %>% 
-  select(tot_bm,tot_den,scar_bm,scar_den,carn30_bm,carn30_den,
+  select(tot_bm,tot_den,scar_bm,scar_den,carn_bm,carn_den,vir_bm,vet_bm,carn30_bm,carn30_den,
          cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity,spear_daily) %>% 
   gather() %>% 
   na.omit()
@@ -114,6 +114,7 @@ pred <- sum_id %>% select(tot_bm,tot_den,scar_bm,scar_den,consp_bm,consp_den,
 c = cor(pred, use="pairwise.complete.obs")
 corplot <- corrplot(c, type = "upper", order = "hclust")
 ```
+
 
 ```{r,echo=FALSE}
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)

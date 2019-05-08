@@ -28,7 +28,7 @@ sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X)
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
   select(-X)
-sum_ssp <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+sum_ssp <- read.csv(here("data","sum_ssp.csv"), stringsAsFactors=F) %>%
   select(-X)
 ```
 
@@ -68,7 +68,7 @@ pca_bent <- prcomp(na.omit(sum_site %>%
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
               # filter(island!="Barbuda") %>%
-              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity)),
+              select(ma_cover, ma_canopy, ta_cover, ta_canopy, rugosity, lc_cover)),
   center = T,scale = T)
 
 sum_site <- sum_site %>% 

@@ -77,7 +77,7 @@
 "76","18th Palm","Sparisoma aurofrenatum","Scaridae",208.931234634167,55.1261556074118,2.26190476190476,0.595238095238095,15.5,0.961562881252794
 "77","18th Palm","Sparisoma chrysopterum","Scaridae",0,0,0,0,NA,NA
 "78","18th Palm","Sparisoma rubiprinne","Scaridae",0,0,0,0,NA,NA
-"79","18th Palm","Sparisoma rubripinne","Scaridae",59.896243,39.6620382902042,0.238095238095238,0.153689815325691,23.5,1.5
+"79","18th Palm","Sparisoma rubripinne","Scaridae",59.896243,39.6620382902043,0.238095238095238,0.153689815325691,23.5,1.5
 "80","18th Palm","Sparisoma viride","Scaridae",869.566789180833,138.528240036327,2.85714285714286,0.652050663696626,23.7333333333333,1.13340335918118
 "81","18th Palm","Sphyraena barracuda","Sphyraenidae",0,0,0,0,NA,NA
 "82","18th Palm","Stegastes adustus ","Pomacentridae",0,0,0,0,NA,NA
@@ -233,7 +233,7 @@
 "232","Karpata","Lutjanus apodus","Lutjanidae",483.730863952381,229.92021648954,0.952380952380952,0.382684554007657,28.0416666666667,2.16706727065764
 "233","Karpata","Lutjanus cyanopterus","Lutjanidae",0,0,0,0,NA,NA
 "234","Karpata","Lutjanus jocu","Lutjanidae",0,0,0,0,NA,NA
-"235","Karpata","Lutjanus mahogoni","Lutjanidae",152.653530825,75.0925101071234,1.19047619047619,0.50973145153433,17.9166666666667,1.97026506958948
+"235","Karpata","Lutjanus mahogoni","Lutjanidae",152.653530825,75.0925101071234,1.19047619047619,0.509731451534331,17.9166666666667,1.97026506958948
 "236","Karpata","Melichthys niger","Balistidae",0,0,0,0,NA,NA
 "237","Karpata","Microspathodon chrysurus","Pomacentridae",43.8887837261905,28.5133930285758,0.595238095238095,0.394836284566119,13.6666666666667,1.33333333333333
 "238","Karpata","Mulloidichthys martinicus","Mullidae",218.09898018131,74.9613097381631,4.64285714285714,1.14805366202297,14.1365800865801,1.16739760973427
@@ -250,14 +250,14 @@
 "249","Karpata","Scarus iseri","Scaridae",15.0156910969048,11.6253847023972,1.42857142857143,0.743452142666476,6.83333333333333,1.83696609779398
 "250","Karpata","Scarus iserti","Scaridae",0,0,0,0,NA,NA
 "251","Karpata","Scarus taeniopterus","Scaridae",794.791115453929,134.271538193658,14.5238095238095,1.61484047217268,10.3191609977324,1.04400346432818
-"252","Karpata","Scarus vetula","Scaridae",707.969640232143,115.262183683607,2.97619047619048,0.50973145153433,23.2857142857143,0.967367210384914
+"252","Karpata","Scarus vetula","Scaridae",707.969640232143,115.262183683607,2.97619047619048,0.509731451534331,23.2857142857143,0.967367210384914
 "253","Karpata","Scorpaena plumieri","Scorpaenidae",0,0,0,0,NA,NA
 "254","Karpata","Serranus tigrinus","Serranidae",0,0,0,0,NA,NA
 "255","Karpata","Sparisoma atomarium","Scaridae",0,0,0,0,NA,NA
 "256","Karpata","Sparisoma aurofrenatum","Scaridae",319.141240221071,47.7308200599983,3.21428571428571,0.614759261302765,16.047619047619,0.648272312909909
 "257","Karpata","Sparisoma chrysopterum","Scaridae",80.789336952381,52.2246424766768,0.238095238095238,0.153689815325691,25.5,0.5
 "258","Karpata","Sparisoma rubiprinne","Scaridae",0,0,0,0,NA,NA
-"259","Karpata","Sparisoma rubripinne","Scaridae",47.7743497547619,39.7467337545199,0.238095238095238,0.153689815325691,20.5,5.5
+"259","Karpata","Sparisoma rubripinne","Scaridae",47.7743497547619,39.74673375452,0.238095238095238,0.153689815325691,20.5,5.5
 "260","Karpata","Sparisoma viride","Scaridae",577.026991586786,153.342072068739,4.04761904761905,0.934858649951567,13.9326530612245,1.31171263313698
 "261","Karpata","Sphyraena barracuda","Sphyraenidae",0,0,0,0,NA,NA
 "262","Karpata","Stegastes adustus ","Pomacentridae",0,0,0,0,NA,NA
@@ -496,7 +496,7 @@
 "495","Pallaster East","Holacanthus tricolour","Pomacanthidae",0,0,0,0,NA,NA
 "496","Pallaster East","Holocentrus adsensionis","Holocentridae",19.3168854,19.3168854,0.166666666666667,0.166666666666667,20,NA
 "497","Pallaster East","Holocentrus rufus","Holocentridae",57.29614467,29.5279122932844,0.833333333333333,0.263523138347365,18.5,2.06155281280883
-"498","Pallaster East","Hypoplectrus puella","Serranidae",5.30255233366667,4.50597847257409,0.5,0.333333333333333,7,1
+"498","Pallaster East","Hypoplectrus puella","Serranidae",5.30255233366667,4.5059784725741,0.5,0.333333333333333,7,1
 "499","Pallaster East","Kyphosus sectatrix","Kyphosidae",826.7903688,826.7903688,3.66666666666667,3.66666666666667,26,NA
 "500","Pallaster East","Lactophrys bicaudalis","Ostraciidae",0,0,0,0,NA,NA
 "501","Pallaster East","Lactophyrs triqueter","Ostraciidae",23.350187595,15.3379269535483,0.333333333333333,0.204124145231932,13.5,1.5
@@ -632,7 +632,7 @@
 "631","Pallaster West","Abudefduf saxatilis","Pomacentridae",96.9997580733333,52.2511943278299,1.33333333333333,0.67700320038633,14.8333333333333,0.440958551844098
 "632","Pallaster West","Acanthurus bahianus","Acanthuridae",133.800198233333,44.6269809871689,3.66666666666667,1.48136573621926,13.7514285714286,0.75237854128607
 "633","Pallaster West","Acanthurus chirurgus","Acanthuridae",86.7103932503333,28.7253913893216,1.83333333333333,0.311804782231162,12.0666666666667,1.55062711328173
-"634","Pallaster West","Acanthurus coeruleus","Acanthuridae",490.17054832,163.000048565122,7.33333333333333,2.24227067451229,11.9263869463869,1.59958087476136
+"634","Pallaster West","Acanthurus coeruleus","Acanthuridae",490.17054832,163.000048565122,7.33333333333333,2.24227067451228,11.9263869463869,1.59958087476136
 "635","Pallaster West","Anisotremus surinamensis","Haemulidae",0,0,0,0,NA,NA
 "636","Pallaster West","Aulostomus maculatus","Aulostomidae",0.252160515833333,0.252160515833333,0.166666666666667,0.166666666666667,15,NA
 "637","Pallaster West","Bodianus rufus","Labridae",0,0,0,0,NA,NA
@@ -721,7 +721,7 @@
 "720","Pallaster West","Thalassoma bifasciatum","Labridae",11.4452771348333,4.80119896679693,4.66666666666667,1.61589328580544,5.90625,0.518850391892178
 "721","Pillars","Abudefduf saxatilis","Pomacentridae",98.9195520233333,61.1044900848987,1.33333333333333,0.67700320038633,14.1666666666667,1.30170827931778
 "722","Pillars","Acanthurus bahianus","Acanthuridae",427.825400513833,32.669917902815,7,1.10554159678513,16.0277838827839,0.93879207080224
-"723","Pillars","Acanthurus chirurgus","Acanthuridae",148.518243065,69.344183237674,1.83333333333333,0.927960727138337,16.4444444444444,0.801233616769775
+"723","Pillars","Acanthurus chirurgus","Acanthuridae",148.518243065,69.3441832376739,1.83333333333333,0.927960727138337,16.4444444444444,0.801233616769775
 "724","Pillars","Acanthurus coeruleus","Acanthuridae",358.045504181,106.092179882163,3.16666666666667,1.09924216318941,17.1666666666667,0.974679434480896
 "725","Pillars","Anisotremus surinamensis","Haemulidae",0,0,0,0,NA,NA
 "726","Pillars","Aulostomus maculatus","Aulostomidae",0,0,0,0,NA,NA
@@ -919,7 +919,7 @@
 "918","Snapper Point","Chaetodon capistratus","Chaetodontidae",0,0,0,0,NA,NA
 "919","Snapper Point","Chaetodon ocellatus","Chaetodontidae",0,0,0,0,NA,NA
 "920","Snapper Point","Chromis cyanea","Pomacentridae",1.52848133516667,1.52848133516667,0.5,0.5,5,NA
-"921","Snapper Point","Chromis multilineata","Pomacentridae",162.040705177833,98.7217411889987,21.3333333333333,7.40026275809777,6.26014492753623,0.932216734631846
+"921","Snapper Point","Chromis multilineata","Pomacentridae",162.040705177833,98.7217411889987,21.3333333333333,7.40026275809778,6.26014492753623,0.932216734631846
 "922","Snapper Point","Clepticus parrae","Labridae",0,0,0,0,NA,NA
 "923","Snapper Point","Diodon hystrix","Diodontidae",0,0,0,0,NA,NA
 "924","Snapper Point","Epinephelus ascensionis","Serranidae",0,0,0,0,NA,NA
@@ -1058,7 +1058,7 @@
 "1057","Turtle Bay","Rypticus saponaceus","Serranidae",0,0,0,0,NA,NA
 "1058","Turtle Bay","Scarus guacamaia","Scaridae",0,0,0,0,NA,NA
 "1059","Turtle Bay","Scarus iseri","Scaridae",0,0,0,0,NA,NA
-"1060","Turtle Bay","Scarus iserti","Scaridae",113.660917559,47.1388815946552,4.5,1.45773797371133,11.7311111111111,0.205672639327406
+"1060","Turtle Bay","Scarus iserti","Scaridae",113.660917559,47.1388815946551,4.5,1.45773797371133,11.7311111111111,0.205672639327406
 "1061","Turtle Bay","Scarus taeniopterus","Scaridae",0,0,0,0,NA,NA
 "1062","Turtle Bay","Scarus vetula","Scaridae",0,0,0,0,NA,NA
 "1063","Turtle Bay","Scorpaena plumieri","Scorpaenidae",0,0,0,0,NA,NA
@@ -1125,7 +1125,7 @@
 "1124","Windward","Holacanthus ciliaris","Pomacanthidae",0,0,0,0,NA,NA
 "1125","Windward","Holacanthus tricolour","Pomacanthidae",0,0,0,0,NA,NA
 "1126","Windward","Holocentrus adsensionis","Holocentridae",87.2192047666667,87.2192047666667,0.666666666666667,0.666666666666667,19.75,NA
-"1127","Windward","Holocentrus rufus","Holocentridae",9.49267351833333,9.49267351833334,0.166666666666667,0.166666666666667,19,NA
+"1127","Windward","Holocentrus rufus","Holocentridae",9.49267351833333,9.49267351833333,0.166666666666667,0.166666666666667,19,NA
 "1128","Windward","Hypoplectrus puella","Serranidae",0,0,0,0,NA,NA
 "1129","Windward","Kyphosus sectatrix","Kyphosidae",0,0,0,0,NA,NA
 "1130","Windward","Lactophrys bicaudalis","Ostraciidae",0,0,0,0,NA,NA

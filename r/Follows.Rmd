@@ -29,7 +29,7 @@ site <- read.csv(here("data", "site.csv"), strip.white = T, stringsAsFactors = F
 sp_site <- read.csv(here("data","sp_site.csv"), stringsAsFactors = F) %>%
   filter(species %in% c("Sparisoma viride","Scarus vetula","Sparisoma aurofrenatum")) %>%
   select(-X,-family) %>%
-  rename_at(vars(3:8), ~ paste0("consp_",.))
+  rename_at(vars(3:8), ~ paste0("consp_",.)) # for adding conspecific biomass/density data
 
 follows <- read.csv(here("data", "follows.csv"), strip.white = T, stringsAsFactors = F) %>%
   janitor::clean_names(case = "old_janitor") %>%
@@ -112,7 +112,7 @@ sum_id <- sum_id %>%
 forays <- follows %>% filter(activity == "graze")
 forays_c <- follows %>% # currently don't use this, but might want to only use complete forays
   filter(
-    !(activity == "graze" & min == 0) | # filters forays starting at time=0
+    !(activity == "graze" & min == 0) | # filters out forays starting at time=0
     !(lead(activity) == "end") # filters forays overlapping with end of follow
   )
 sum_forays <- forays %>% 
@@ -187,7 +187,7 @@ int_matrix <- full_join(stop, qup, by = c("competitor_code","island")) %>%
 ```
 
 # Summarizing data by site, species, and phase
-Next I create a summary tables that averages variables within each site/species/phase, then combines into one table
+Next I create a summary tables that average variables within each site/species/phase, then combines into one table
 ```{r,warning=FALSE, message= FALSE}
 # site averages
 sum_site <- sum_id %>% 
@@ -219,7 +219,7 @@ sum_site <- sum_id %>%
   select(-n)
 
 # site averages by species
-sum_site_sp <- sum_id %>% 
+sum_ss <- sum_id %>% 
   filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site, island, species, species_code) %>% 
   summarize(
@@ -247,7 +247,7 @@ sum_site_sp <- sum_id %>%
     ) 
 
 # site averages by species and phase
-sum_site_sp_ph <- sum_id %>% 
+sum_ssp <- sum_id %>% 
   filter(length_cm >= 15 & length_cm <= 30) %>%
   group_by(site, island, species, species_code, phase) %>% 
   summarize(
@@ -275,9 +275,6 @@ sum_site_sp_ph <- sum_id %>%
     length_m = mean(length_cm),
     length_se = sd(length_cm)/sqrt(n)
     )
-
-
-test <- sum_id %>% filter(site=="Pallaster Mid")
 ```
 
 ### 1_3 Join datasets, print .csv
@@ -288,16 +285,16 @@ sum_site <- sum_site %>%
 sum_id <- sum_id %>% 
   left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
-sum_site_sp <- sum_site_sp %>% 
+sum_ss <- sum_ss %>% 
   left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
-sum_site_sp_ph <- sum_site_sp_ph %>% 
+sum_ssp <- sum_ssp %>% 
   left_join(site, by=c("island","site")) %>%
   left_join(sp_site, by=c("species","site")) # add conspecific scarid info (based on site/species)
 
 write.csv(sum_site,file=here("data/sum_site.csv"))
 write.csv(sum_id,file=here("data/sum_id.csv"))
-write.csv(sum_site_sp,file=here("data/sum_site_sp.csv"))
-write.csv(sum_site_sp_ph,file=here("data/sum_site_sp_ph.csv"))
+write.csv(sum_ss,file=here("data/sum_ss.csv"))
+write.csv(sum_ssp,file=here("data/sum_ssp.csv"))
 ```
 

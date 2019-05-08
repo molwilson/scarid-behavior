@@ -1,0 +1,27 @@
+---
+title: "Workflow"
+author: "Molly Wilson"
+date: "5/8/2019"
+output: html_document
+---
+
+Data processing and analaysis workflow for 'Scarid Behavior':
+
+1. **Sites.rmd**: process site-level fish, benthic, and rugosity data.
+*Exports*:
+  - site.csv
+  - sp_site.csv (fish species abundance/biomass data for later adding conspecific metrics)
+  - fish.csv (processed fish data for later calculating grazing impacts of a given fish community)
+  
+2. **Follows.rmd**: process individual fish-level behavioral data, add site-level descriptors into individual-level and site-level summary datasets.
+*Exports*:
+  - sum_id.csv (indv. fish-level data, including site characteristics)
+  - sum_site.csv (site level summary data)
+  - sum_ss.csv (summary data by site and species)
+  - sum_ssp.csv (summary data by site, species, and phase)
+  
+3. Exploration/analysis files:
+  - **Data_prodding.rmd**: exploring relationships among variables, distributions, etc.
+  - **Analysis.rmd**: initial boxplots/bargraphs looking at trends among islands/sites, testing ANOVAs/assumptions, predicted grazing impact, bite content calculations
+  - **Models.rmd**: PCAs, LMEs, GAMMs (exploratory, no .csv exports)
+  - **Ch2_outline_V3**: selected analyses for current manuscript outline
