@@ -277,7 +277,7 @@ _Model validity notes_:
 *Re: Nash et al. 2016: should I be aggregating data to the site level?*
 ```{r}
 m_data2 <- sum_ssp_pca %>% filter(species_code!="rbp") # currently doesn't work when removing rbp data
-gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_m) + s(pc1_bent) + s(pc2_bent) + s(scar_bm), 
+gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_mean) + s(pc1_bent) + s(pc2_bent) + s(scar_bm), 
            family = gaussian(link=identity),
            random = list(island=~1),
            method = "REML",
@@ -289,7 +289,7 @@ plot(gamm2$lme) # not too heteroskedastic?
 AIC(gamm2$lme)
 
 # Confirming low VIF among predictor variables with site-level model
-lme1 <- lme(fr_mean ~ phase + length_m + scar_bm + pc1_bent + pc2_bent, data=sum_ssp_pca,
+lme1 <- lme(fr_mean ~ phase + length_mean + scar_bm + pc1_bent + pc2_bent, data=sum_ssp_pca,
     random = ~1 | island, 
     na.action = na.omit
     )
@@ -301,7 +301,7 @@ Site-level GAMM with pca_all
 m_data <- sum_ssp_pca %>% filter(species_code!="rbp")
 
 # Main effects only
-gamm1 <- gamm(fr_mean ~ species_code + s(length_m) + phase + s(pc1_all) + s(pc2_all), 
+gamm1 <- gamm(fr_mean ~ species_code + s(length_mean) + phase + s(pc1_all) + s(pc2_all), 
            family = gaussian(link=identity),
            random = list(island=~1),
            method = "REML",
@@ -313,7 +313,7 @@ plot(gamm1$lme) # not too heteroskedastic?
 AIC(gamm1$lme)
 
 # Interactions
-gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_m, by = factor(species_code)) + s(pc2_all)  + s(pc1_all, by = factor(species_code)), 
+gamm2 <- gamm(fr_mean ~ species_code + phase + s(length_mean, by = factor(species_code)) + s(pc2_all)  + s(pc1_all, by = factor(species_code)), 
            family = gaussian(link=identity),
            random = list(island=~1),
            method = "REML",

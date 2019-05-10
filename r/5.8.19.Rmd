@@ -11,6 +11,11 @@ Tasks at hand:
 - include phases, or initial phase only?
 - add site as random effect (in addition to island?)
 
+Notes after exploration:
+- Both site-level and id-level are 'possible', but still not sure which is most appropriate. Best models for id-level have many species interactions. I could split these models by species but obviously would lose a lot of R2.
+- Will stick with initial phase only
+- Site-level models for initial phase only cannot have 'method = "REML"'
+- Site as random effect doesn't really change much in terms of best models or R2....
 
 ```{r, echo=F, message=F, warning=F}
 library(here)
@@ -32,17 +37,34 @@ Assemble PC1 and PC2 variables
 pca_pred <- prcomp(na.omit(sum_site %>% 
               select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, scar_den, scar_bm, carn30_bm)),
   center = T, scale = T)
+pca_bent <- prcomp(na.omit(sum_site %>% 
+              select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy)),
+  center = T, scale = T)
+pca_fish <- prcomp(na.omit(sum_site %>% 
+              select(scar_bm, carn30_bm)),
+  center = T, scale = T)
 
-sum_site <- sum_site %>% 
+autoplot(pca_pred, data = sum_site, shape = 'island', colour = 'island',
+         loadings = T, loadings.colour = 'gray',
+         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
+            loadings.label.repel = T) +
+    scale_color_manual(values = c("cadetblue3","cadetblue3","cadetblue3")) +
+    theme_bw() +
+    theme(legend.title = element_blank())
+ggsave(here("figs/pca_pred.png"), width = 8, height = 5)
+  
+sum_site_pca <- sum_site %>% 
   bind_cols(as.data.frame(pca_pred$x) %>% 
            select(PC1,PC2)) %>%
   rename(pc1_all=PC1,
          pc2_all=PC2)
-
 sum_id_pca <- sum_id %>% 
-  left_join(select(sum_site,site,pc1_all,pc2_all), by = "site")
+  left_join(select(sum_site_pca,site,pc1_all,pc2_all), by = "site")
 sum_ssp_pca <- sum_ssp %>%
-  left_join(select(sum_site,site,pc1_all,pc2_all), by = "site")
+  left_join(select(sum_site_pca,site,pc1_all,pc2_all), by = "site")
+
+
+var <- get_pca_var
 ```
 
 ## Site - vs. ID - level GAMMs
@@ -139,70 +161,82 @@ gamm11 <- gamm(fr ~ s(length_cm, by = factor(species_code), k=5) + s(pc1_all, by
            )
 g11 <- c("g11", "Size~Species + PC1~Species", AIC(gamm11$lme), summary(gamm11$gam)$r.sq)
 
-gtab_fr <- as.data.frame(rbind(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11)) %>% setNames(c("g","Model", "AIC", "Adj. R2")) %>% arrange(AIC)
+gamm12 <- gamm(fr ~ species + s(pc1_all, k=5), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           method = "REML",
+           data = m_data
+           )
+g12 <- c("g11", "Species + PC1", AIC(gamm11$lme), summary(gamm11$gam)$r.sq)
+
+gtab_fr_id <- as.data.frame(rbind(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AIC", "Adj. R2")) %>% arrange(AIC)
+
+# plots from best models
+plot(gamm3$gam,pages=1)
+plot(gamm5$gam,pages=1)
 ```
 
 Site - level GAMMs, initial phase only
 ```{r, echo=F, message=F, warning=F}
 m_data <- sum_ssp_pca %>% filter(species_code!="rbp" & phase == "i")
 
-gamm1 <- gamm(fr_mean ~ species_code + s(length_m, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
+gamm1 <- gamm(fr_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g1 <- c("g1", "Species + Size + PC1 + PC2", AICc(gamm1$lme), summary(gamm1$gam)$r.sq)
 
-gamm2 <- gamm(fr_mean ~ species_code + s(length_m, k=3) + s(pc1_all, k=3), 
+gamm2 <- gamm(fr_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g2 <- c("g2", "Species + Size + PC1", AICc(gamm2$lme), summary(gamm2$gam)$r.sq)
 
-gamm3 <- gamm(fr_mean ~ species_code + s(length_m, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
+gamm3 <- gamm(fr_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g3 <- c("g3", "Species + Size~Species + PC1~Species + PC2~Species", AICc(gamm3$lme), summary(gamm3$gam)$r.sq)
 
-gamm4 <- gamm(fr_mean ~ species_code + s(length_m, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3), 
+gamm4 <- gamm(fr_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g4 <- c("g4", "Species + Size~Species + PC1~Species + PC2", AICc(gamm4$lme), summary(gamm4$gam)$r.sq)
 
-gamm5 <- gamm(fr_mean ~ species + s(length_m, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm5 <- gamm(fr_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g5 <- c("g5", "Species + Size~Species + PC1~Species", AICc(gamm5$lme), summary(gamm5$gam)$r.sq)
 
-gamm6 <- gamm(fr_mean ~ s(length_m, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm6 <- gamm(fr_mean ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g6 <- c("g6", "Size + PC1~Species", AICc(gamm6$lme), summary(gamm6$gam)$r.sq)
 
-gamm7 <- gamm(fr_mean ~ s(length_m, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+gamm7 <- gamm(fr_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g7 <- c("g7", "Size~Species + PC1", AICc(gamm7$lme), summary(gamm7$gam)$r.sq)
 
-gamm8 <- gamm(fr_mean ~ species + s(length_m, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+gamm8 <- gamm(fr_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g8 <- c("g8", "Species + Size~Species + PC1", AICc(gamm8$lme), summary(gamm8$gam)$r.sq)
 
-gamm9 <- gamm(fr_mean ~ species + s(length_m, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm9 <- gamm(fr_mean ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
@@ -216,12 +250,221 @@ gamm10 <- gamm(fr_mean ~ species + s(pc1_all, by = factor(species_code), k=3),
            )
 g10 <- c("g10", "Species + PC1~Species", AICc(gamm10$lme), summary(gamm10$gam)$r.sq)
 
-gamm11 <- gamm(fr_mean ~ s(length_m, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm11 <- gamm(fr_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g11 <- c("g11", "Size~Species + PC1~Species", AICc(gamm11$lme), summary(gamm11$gam)$r.sq)
 
-gtab_fr <- as.data.frame(rbind(g1,g2,g4,g5,g6,g7,g8,g9,g10,g11)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
+gamm12 <- gamm(fr_mean ~ species_code + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g12 <- c("g12", "Species + PC1", AICc(gamm12$lme), summary(gamm12$gam)$r.sq)
+
+
+gtab_fr_site <- as.data.frame(rbind(g1,g2,g4,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
+
+# summary + plots from best models
+summary(gamm12$gam)
+plot(gamm12$gam,pages=1)
+```
+
+## Random effects: site vs. site + island
+
+Site - level GAMM adding site as random effect
+```{r, echo=F, message=F, warning=F}
+m_data <- sum_ssp_pca %>% filter(species_code!="rbp" & phase == "i")
+
+gamm1 <- gamm(fr_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g1 <- c("g1", "Species + Size + PC1 + PC2", AICc(gamm1$lme), summary(gamm1$gam)$r.sq)
+
+gamm2 <- gamm(fr_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g2 <- c("g2", "Species + Size + PC1", AICc(gamm2$lme), summary(gamm2$gam)$r.sq)
+
+# gamm3 <- gamm(fr_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
+#            family = gaussian(link=identity),
+#            random = list(island=~1, site=~1),
+#            data = m_data
+#            )
+# g3 <- c("g3", "Species + Size~Species + PC1~Species + PC2~Species", AICc(gamm3$lme), summary(gamm3$gam)$r.sq)
+
+gamm4 <- gamm(fr_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g4 <- c("g4", "Species + Size~Species + PC1~Species + PC2", AICc(gamm4$lme), summary(gamm4$gam)$r.sq)
+
+gamm5 <- gamm(fr_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g5 <- c("g5", "Species + Size~Species + PC1~Species", AICc(gamm5$lme), summary(gamm5$gam)$r.sq)
+
+# gamm6 <- gamm(fr_mean ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+#            family = gaussian(link=identity),
+#            random = list(island=~1, site=~1),
+#            data = m_data
+#            )
+# g6 <- c("g6", "Size + PC1~Species", AICc(gamm6$lme), summary(gamm6$gam)$r.sq)
+
+gamm7 <- gamm(fr_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g7 <- c("g7", "Size~Species + PC1", AICc(gamm7$lme), summary(gamm7$gam)$r.sq)
+
+# gamm8 <- gamm(fr_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+#            family = gaussian(link=identity),
+#            random = list(island=~1, site=~1),
+#            data = m_data
+#            )
+# g8 <- c("g8", "Species + Size~Species + PC1", AICc(gamm8$lme), summary(gamm8$gam)$r.sq)
+
+gamm9 <- gamm(fr_mean ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g9 <- c("g9", "Species + Size + PC1~Species", AICc(gamm9$lme), summary(gamm9$gam)$r.sq)
+
+gamm10 <- gamm(fr_mean ~ species + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g10 <- c("g10", "Species + PC1~Species", AICc(gamm10$lme), summary(gamm10$gam)$r.sq)
+
+gamm11 <- gamm(fr_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g11 <- c("g11", "Size~Species + PC1~Species", AICc(gamm11$lme), summary(gamm11$gam)$r.sq)
+
+gamm12 <- gamm(fr_mean ~ species + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1, site=~1),
+           data = m_data
+           )
+g12 <- c("g10", "Species + PC1", AICc(gamm10$lme), summary(gamm10$gam)$r.sq)
+
+gtab_fr_site_rd2 <- as.data.frame(rbind(g1,g2,g4,g5,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
+
+# plots from best models
+plot(gamm10$gam,pages=1)
+plot(gamm2$gam,pages=1)
+```
+
+
+# Feeding intensity
+Site - level GAMMs, initial phase only
+```{r, echo=F, message=F, warning=F}
+m_data <- sum_ssp_pca %>% filter(species_code!="rbp" & phase == "i")
+
+gamm1 <- gamm(for_bites_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g1 <- c("g1", "Species + Size + PC1 + PC2", AICc(gamm1$lme), summary(gamm1$gam)$r.sq)
+
+gamm2 <- gamm(for_bites_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g2 <- c("g2", "Species + Size + PC1", AICc(gamm2$lme), summary(gamm2$gam)$r.sq)
+
+# gamm3 <- gamm(for_bites_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
+#            family = gaussian(link=identity),
+#            random = list(island=~1),
+#            data = m_data
+#            )
+# g3 <- c("g3", "Species + Size~Species + PC1~Species + PC2~Species", AICc(gamm3$lme), summary(gamm3$gam)$r.sq)
+
+gamm4 <- gamm(for_bites_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g4 <- c("g4", "Species + Size~Species + PC1~Species + PC2", AICc(gamm4$lme), summary(gamm4$gam)$r.sq)
+
+gamm5 <- gamm(for_bites_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g5 <- c("g5", "Species + Size~Species + PC1~Species", AICc(gamm5$lme), summary(gamm5$gam)$r.sq)
+
+gamm6 <- gamm(for_bites_mean ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g6 <- c("g6", "Size + PC1~Species", AICc(gamm6$lme), summary(gamm6$gam)$r.sq)
+
+gamm7 <- gamm(for_bites_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g7 <- c("g7", "Size~Species + PC1", AICc(gamm7$lme), summary(gamm7$gam)$r.sq)
+
+gamm8 <- gamm(for_bites_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g8 <- c("g8", "Species + Size~Species + PC1", AICc(gamm8$lme), summary(gamm8$gam)$r.sq)
+
+gamm9 <- gamm(for_bites_mean ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g9 <- c("g9", "Species + Size + PC1~Species", AICc(gamm9$lme), summary(gamm9$gam)$r.sq)
+
+gamm10 <- gamm(for_bites_mean ~ species + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g10 <- c("g10", "Species + PC1~Species", AICc(gamm10$lme), summary(gamm10$gam)$r.sq)
+
+gamm11 <- gamm(for_bites_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g11 <- c("g11", "Size~Species + PC1~Species", AICc(gamm11$lme), summary(gamm11$gam)$r.sq)
+
+gamm12 <- gamm(for_bites_mean ~ species_code + s(pc1_all, k=3), 
+           family = gaussian(link=identity),
+           random = list(island=~1),
+           data = m_data
+           )
+g12 <- c("g12", "Species + PC1", AICc(gamm12$lme), summary(gamm12$gam)$r.sq)
+
+
+gtab_fi_site <- as.data.frame(rbind(g1,g2,g4,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
+
+# plots from best models
+plot(gamm12$gam,pages=1)
+plot(gamm10$gam,pages=1)
+
+summary(gamm12$gam)
 ```
