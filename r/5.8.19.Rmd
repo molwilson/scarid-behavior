@@ -20,6 +20,8 @@ Notes after exploration:
 ```{r, echo=F, message=F, warning=F}
 library(here)
 library(tidyverse)
+library(factoextra)
+library(corrplot)
 library(mgcv)
 library(MuMIn)
 
@@ -34,24 +36,35 @@ sum_ssp <- read.csv(here("data","sum_ssp.csv"), stringsAsFactors=F) %>%
 
 Assemble PC1 and PC2 variables
 ```{r, echo=F, message=F, warning=F}
-pca_pred <- prcomp(na.omit(sum_site %>% 
-              select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, scar_den, scar_bm, carn30_bm)),
-  center = T, scale = T)
-pca_bent <- prcomp(na.omit(sum_site %>% 
-              select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy)),
-  center = T, scale = T)
-pca_fish <- prcomp(na.omit(sum_site %>% 
-              select(scar_bm, carn30_bm)),
-  center = T, scale = T)
+pca_data <- na.omit(sum_site %>%
+  select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, scar_bm, scar_den, carn30_bm))
+names(pca_data)[1:9] =
+  c("rugosity", "macroalgal cover", "macroalgal canopy", "turf cover", "turf canopy", "coral cover", "scarid biomass", "scarid density", "predator biomass")
 
-autoplot(pca_pred, data = sum_site, shape = 'island', colour = 'island',
-         loadings = T, loadings.colour = 'gray',
-         loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
-            loadings.label.repel = T) +
-    scale_color_manual(values = c("cadetblue3","cadetblue3","cadetblue3")) +
-    theme_bw() +
-    theme(legend.title = element_blank())
-ggsave(here("figs/pca_pred.png"), width = 8, height = 5)
+pca_pred <- prcomp(pca_data, center = T, scale = T)
+
+
+# pca_bent <- prcomp(na.omit(sum_site %>% 
+#               select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy)), center = T, scale = T)
+# pca_fish <- prcomp(na.omit(sum_site %>% 
+#               select(scar_bm, carn30_bm)), center = T, scale = T)
+
+fviz_pca_biplot(pca_pred,
+                col.ind = sum_site$island,
+                mean.point = F,
+                label = "var",
+                repel = T
+                ) +
+  scale_shape_manual(values=c(15,16,17)) +
+  scale_color_manual(values = c("black","black","black")) +
+  labs(x = "PC1 (55.6%)", y = "PC2 (24.5%)", title = "") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+ggsave(here("figs/pca_pred.png"), width = 7, height = 5)
+
+-var <- get_pca_var(pca_pred)
+corrplot(var$contrib, is.corr=FALSE)  
   
 sum_site_pca <- sum_site %>% 
   bind_cols(as.data.frame(pca_pred$x) %>% 

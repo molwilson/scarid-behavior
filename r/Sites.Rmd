@@ -267,7 +267,8 @@ ggplot(right_join(carn30_site, island_site, by="site"),
 # Total scarids
 scar_tran <- fish %>% 
   filter(family=="Scaridae",
-         biomass != 0) %>% 
+         biomass != 0,
+         length > 5) %>% 
   group_by(site,transect) %>% 
   summarize(
     bm_t=sum(biomass)/1.2,
