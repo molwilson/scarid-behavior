@@ -31,19 +31,13 @@ ab_fish <-read.csv(here("data","ab_fish.csv"), stringsAsFactors=F) %>%
   janitor::clean_names(case="old_janitor") %>%
   uncount(number) %>% # expand to replicate rows if multiple fish were recorded
   select(-c(time,depth_ft,surveyor,date)) 
-bon_herb <- read.csv(here("data","bon_herb.csv"), stringsAsFactors=F) %>% # this file is already expanded
+bon_fish <- read.csv(here("data","bon_fish.csv"), stringsAsFactors=F) %>% # this file is already expanded
   janitor::clean_names(case="old_janitor") %>%
-  filter(date==2017) %>% 
-  select(-date) %>%
-  rename(island = region)
-bon_carn <- read.csv(here("data","bon_carn.csv"), stringsAsFactors=F) %>% 
-  janitor::clean_names(case="old_janitor") %>%
-  rename(island = region) %>%
-  uncount(number) %>%
-  select(-c(diver,date))
-fish <- bind_rows(bon_herb,bon_carn) %>% 
+  filter(surveyor=="MWW") %>%
   filter(site %in% c("Oil Slick","Karpata","Front Porch","18th Palm")) %>%
-  bind_rows(ab_fish) %>%
+  uncount(number) %>%
+  select(-c(surveyor,date))
+fish <- bind_rows(ab_fish, bon_fish) %>%
   mutate(
     biomass = as.numeric(biomass),
     species_code = tolower(species_code)) %>%
@@ -228,7 +222,7 @@ carn_site<-carn_tran %>%
 
 # Carnivores over 30cm
 carn30_tran <- fish %>% 
-  filter(family %in% c("Serranidae","Lutjanidae","Carangidae", "Sphyraenidae", "Haemulidae"),
+  filter(family %in% c("Serranidae", "Lutjanidae", "Carangidae", "Sphyraenidae", "Haemulidae"),
          biomass != 0, length>=30) %>% 
   group_by(site, transect) %>% 
   summarize(
@@ -261,7 +255,7 @@ ggplot(right_join(carn30_site, island_site, by="site"),
                       width=.2,
                       position=position_dodge(.9)) +
         scale_fill_manual(values = c("gray", "slategray2", "darkseagreen")) +
-        labs(title="Biomass of Piscivores over 25cm") +
+        labs(title="Biomass of Piscivores over 30cm") +
         theme_bw() +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
@@ -273,7 +267,8 @@ ggplot(right_join(carn30_site, island_site, by="site"),
 # Total scarids
 scar_tran <- fish %>% 
   filter(family=="Scaridae",
-         biomass != 0) %>% 
+         biomass != 0,
+         length > 5) %>% 
   group_by(site,transect) %>% 
   summarize(
     bm_t=sum(biomass)/1.2,
@@ -297,6 +292,8 @@ scar_site <- scar_tran %>%
     ) %>% 
   select(-c(n,l_n)) %>%
   replace(. == "NaN",NA)
+
+# Total scarids above 
 
 # Scarids by species (join wide S. vetula, S. viride, and S. aurofrenatum density, biomass, and length data)
 
@@ -488,6 +485,6 @@ site <- fish_site %>%
   left_join(human,by="site")
 
 write.csv(site,file=here("data/site.csv"))
-write.csv(sp_site,file=here("data/sp_site.csv"))
+write.csv(sp_site,file=here("data/sp_site.csv")) # for later calculating conspecifics
 write.csv(fish,file=here("data/fish.csv")) # for predicting grazing impact of observed fish communities at each site (see Analysis.rmd)
 ```

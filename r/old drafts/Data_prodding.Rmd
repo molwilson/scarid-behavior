@@ -42,7 +42,7 @@ sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
   select(-X) %>%
   filter(length_cm>=15)
-sum_site_sp_ph <- read.csv(here("data","sum_site_sp_ph.csv"), stringsAsFactors=F) %>%
+sum_ssp <- read.csv(here("data","sum_ssp.csv"), stringsAsFactors=F) %>%
   select(-X) 
 fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
   select(-X) 
@@ -78,10 +78,10 @@ ggplot(filter(sample, species_code!="rbp" & phase == "i"),
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-Need to determine appropriate size range for comparison. Because they are not evenly distributed (i.e. larger fish in Bonaire, smaller in Barbuda), I will likely want to compare length-feeding relationships as opposed to pooled averages
+Need to determine appropriate size range for comparison. Because they are not quite evenly distributed (i.e. larger fish in Bonaire, smaller in Barbuda), I will likely want to compare length-feeding relationships as opposed to pooled averages
 
 ```{r}
-ggplot(filter(sum_id, species_code!="rbp" & phase == "i" & length_cm<=30 & length_cm>=15), aes(x = length_cm)) +
+ggplot(filter(sum_id, species_code!="rbp" & phase == "i" & length_cm<=25 & length_cm>=17), aes(x = length_cm)) +
   facet_grid(.~species) +
   geom_density(aes(fill = island), alpha=0.4) +
   labs(title="Size distributions within sample subset") +
@@ -96,7 +96,7 @@ Potential predictor variables are site-level fish, benthic, and rugosity values.
 First, check distribution of predictor variables of interest: not very normally distributed...
 ```{r,warning=FALSE,echo=FALSE}
 pred <- sum_site %>% 
-  select(tot_bm,tot_den,scar_bm,scar_den,carn30_bm,carn30_den,
+  select(tot_bm,tot_den,scar_bm,scar_den,carn_bm,carn_den,vir_bm,vet_bm,carn30_bm,carn30_den,
          cca_cover,lc_cover,ma_cover,ma_canopy,ta_cover,ta_canopy,rugosity,spear_daily) %>% 
   gather() %>% 
   na.omit()
@@ -115,6 +115,7 @@ c = cor(pred, use="pairwise.complete.obs")
 corplot <- corrplot(c, type = "upper", order = "hclust")
 ```
 
+
 ```{r,echo=FALSE}
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
 {
@@ -126,7 +127,7 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
     if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
     text(0.5, 0.5, txt, cex = cex.cor * r)
 }
-pairs(~consp_l+scar_bm+rugosity+ma_ind+ta_canopy+ta_cover, data=sum_id,
+pairs(~consp_l+scar_bm+carn30_bm+carn30_den+rugosity+ma_ind+ta_canopy+ta_cover, data=sum_id,
       lower.panel=panel.smooth, upper.panel=panel.cor, 
       pch=20, main="Selected Fish & Benthic Community Variables", na.action = na.omit)
 ```
@@ -144,7 +145,7 @@ pca_pred <- prcomp(na.omit(sum_site %>%
               remove_rownames %>% 
               column_to_rownames(var="site") %>%
               select(ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, rugosity, scar_den, 
-                     scar_bm, spear_daily)),
+                     scar_bm, carn30_bm, spear_daily)),
   center = T,scale = T)
 
 autoplot(pca_pred, data = sum_site, colour = 'island',
@@ -196,7 +197,7 @@ sum_id_pca <- sum_id %>%
   left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
 write.csv(sum_id_pca, file=here("data/sum_id_pca.csv"))
 
-sum_ssp_pca <- sum_site_sp_ph %>%
+sum_ssp_pca <- sum_ssp %>%
   left_join(select(sum_site,site,pc1_bent,pc2_bent,pc1_all,pc2_all), by = "site")
 write.csv(sum_ssp_pca, file=here("data/sum_ssp_pca.csv"))
 ```
@@ -216,6 +217,8 @@ ggplot(grazing,aes(value)) +
   geom_histogram(aes(y=..density..), colour="black", fill="white") +
   geom_density(alpha=.2, fill="#FF6666") 
 ```
+
+Takeaway: positive skew -> should be using median to reflext site averages
  
 ```{r,echo=FALSE}
 pairs(~g_frac+fr+br+for_dur+for_bites, data=sum_id,
