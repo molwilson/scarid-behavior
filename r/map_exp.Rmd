@@ -1,0 +1,146 @@
+---
+title: "Map"
+author: "Molly Wilson"
+date: "6/4/2019"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(sf)
+library(ggmap)
+
+site_data <- read.csv(here("data","site_coord.csv"))
+
+# shape files for islands
+atg <- read_sf("bes_adm1")
+
+
+atg.shp <- system.file(here("data", "map", "atg", "atg.shp", package="sf"))
+atg <- st_read(atg.shp)
+bes.shp <- system.file("bes_adm1", package="sf")
+bes <- st_read("bes.shp")
+
+
+download.file("http://github.com/mgimond/Spatial/raw/master/Data/Income_schooling.zip", 
+              destfile = "Income_schooling.zip" , mode='wb')
+unzip("Income_schooling.zip", exdir = ".")
+file.remove("Income_schooling.zip")
+s.sf <- st_read("Income_schooling.shp")
+
+download.file("http://github.com/mgimond/Spatial/raw/master/Data/Income_schooling.zip", 
+              destfile = "Income_schooling.zip")
+```
+
+```{r}
+atg_map <- read_sf(atg)
+atg_map <- st_read("data/map/atg/atg.shp")
+```
+
+
+
+```{r}
+map.world <- map_data("world", region = "Bonaire")
+ggplot(map.world, aes(x=long, y=lat)) +
+  geom_polygon(colour = "white")
+
+islands <- c("Antigua","Barbuda","Bonaire")
+ll.islands <- geocode(islands)
+islands.x <- ll.islands$lon
+islands.y <- ll.islands$lat
+
+ggplot() +
+  theme_bw() +
+  geom_polygon(data = map.world, aes(x = long, y = lat))+
+  coord_equal(xlim = c(-100, -60),ylim = c(27,10)) +
+  geom_point(aes(x=islands.x, y=islands.y), color="#f24db3", size=5) +
+  labs(x = "", y="",title = "")
+```
+
+```{r}
+m_antigua <- get_map(location="Antigua", source="stamen", maptype="toner-lite", bbox = c(left = 110, bottom = -40, right = 160, top = -10), zoom=11)
+ggmap(m_antigua)
+
+m_carib <- get_map(location="Caribbean")
+ggmap(m_carib)
+
+
+antigua <- map_data("usa")
+```
+
+
+```{r}
+ggplot(data = world) +
+    geom_sf() +
+    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE)
+```
+
+
+
+
+# Build base map, which we'll use for rest of maps
+base_map <- ggplot()+ 
+  geom_sf(data=world_land %>%
+            mutate(Country = ifelse(ISO3 %in% c("BRA","PHL","IDN"),"Target","Other")), 
+          color = NA, aes(fill=Country)) +
+  scale_fill_manual(values=c("grey85","grey60")) +
+  scale_color_manual(values = pal,name = "Site Type") +
+  scale_shape_manual(values = shape_pal,name = "Site Type") +
+  geom_sf(data = site_coords, aes(shape=site_type),color = "black",size=2.5, show.legend = FALSE) +
+  geom_sf(data = site_coords,aes(color=site_type,shape=site_type), show.legend = "point",size=2) +
+  guides(fill=FALSE)+
+  theme_bw() +
+  theme(plot.title = element_text(color="black",hjust=0,vjust=1, size=rel(1)),
+        panel.border = element_rect(color = 'black', fill = NA,size=1),
+        panel.grid.major = element_line(colour = "white"), 
+        legend.text = element_text(color = "black", size = rel(2)),
+        legend.title = element_text(color = "black", size = rel(2)),
+        legend.title.align = 1,
+        legend.background = element_rect(fill="white"),
+        legend.position = "right",
+        legend.direction="vertical",
+        legend.text.align = 0,
+        axis.text = element_text(color = "black", size = rel(1)),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) + 
+  guides(colour = guide_legend(override.aes = list(size=4)))
+
+world_map <- base_map +
+  geom_sf(data = philippines_bbox%>%
+            st_as_sfc(),fill=NA) +
+  geom_sf(data = indonesia_bbox%>%
+            st_as_sfc(),fill=NA) +
+  geom_sf(data = brazil_bbox%>%
+            st_as_sfc(),fill=NA) +
+  guides(color = FALSE,shape=FALSE)+
+  xlim(c(world_bbox[1], world_bbox[3])) +
+  ylim(c(world_bbox[2], world_bbox[4]))
+
+brazil_map <- base_map +
+  xlim(c(brazil_bbox[1], brazil_bbox[3])) +
+  ylim(c(brazil_bbox[2], brazil_bbox[4])) +
+  guides(color = FALSE,shape=FALSE)
+
+indonesia_map <- base_map +
+  xlim(c(indonesia_bbox[1], indonesia_bbox[3])) +
+  ylim(c(indonesia_bbox[2], indonesia_bbox[4])) +
+  guides(color = FALSE,shape=FALSE)
+
+philippines_map <- base_map +
+  xlim(c(philippines_bbox[1], philippines_bbox[3])) +
+  ylim(c(philippines_bbox[2], philippines_bbox[4])) +
+  guides(color = FALSE,shape=FALSE)
+
+# Put all maps together
+combined_map <- plot_grid(plot_grid(world_map,labels = "A"),
+                          plot_grid(brazil_map, philippines_map, labels = c("B", "C"), rel_widths = c(0.65,0.35)),
+                          plot_grid(indonesia_map, get_legend(base_map), labels = c("D", ""), rel_widths = c(0.65,0.35)),
+                          ncol=1,
+                          rel_heights = c(1,0.8,0.5))
+
+ggsave(paste0("paper_package/figures/figure_1_map.png"),combined_map,width = 7.5,height=7.5,device="png",dpi=300)
