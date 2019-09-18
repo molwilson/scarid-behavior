@@ -579,3 +579,5 @@ vif(lme_fr) # test VIF here, because I'm not sure how to do it in GAMM yet...? A
 ```
 
 
+
+

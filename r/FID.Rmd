@@ -22,19 +22,14 @@ fid <- read.csv(here("data","fid.csv"), stringsAsFactors=F) %>%
 # FID by species
 ```{r}
 fid.sum <- fid %>%
-  group_by(species, phase) %>%
-  summarize(fid_mean = mean(fid_cm/100),
-            fid_max = max(fid_cm/100)) %>%
-  rename(max = fid_max,
-         mean = fid_mean) %>%
-  melt() %>%
-  rename(fid = value)
+  group_by(species) %>%
+  summarize(n=n(),
+            fid_mean = mean(fid_cm/100),
+            fid_mean_se = sd((fid_cm/100))/sqrt(n),
+            fid_max = max(fid_cm/100)) 
 
-ggplot(fid, aes(x = species, y = fid_cm)) +
-  geom_boxplot()
-
-ggplot(fid.sum %>% filter(phase == "Initial"), aes(x = species, y = fid, group = variable)) +
-  geom_point(aes(color = variable))
+fid.ch2sum <- fid.sum %>%
+  filter(species %in% c("Queen","Stoplight"))
 ```
 
 
@@ -48,12 +43,12 @@ ggplot(fid, aes(x = pre_approach_activity,y=fid_cm)) + geom_point()
 
 # bump distance by spear, site
 ```{r}
-bump <- FID %>% filter(Bump.distance.cm != 0)
-lmBump <-lm(data=bump,Bump.distance.cm~Spear + Site + Species + Rugosity + Pre.Approach.Activity)
+bump <- fid %>% filter(bump_distance_cm != 0)
+lmBump <-lm(data=bump,bump_distance_cm ~ spear + site + species + rugosity + pre_approach_activity)
 summary(lmBump)
-aov()
+aov(lmBump)
 
-ggplot(bump, aes(x=Spear,y=Bump.distance.cm)) + geom_point(aes(color=Species))
+ggplot(bump, aes(x=spear,y=bump_distance_cm)) + geom_point(aes(color=species))
 ```
 
 
