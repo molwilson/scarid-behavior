@@ -30,7 +30,7 @@ library(tidyverse)
 ab_fish <-read.csv(here("data","ab_fish.csv"), stringsAsFactors=F) %>%
   janitor::clean_names(case="old_janitor") %>%
   uncount(number) %>% # expand to replicate rows if multiple fish were recorded
-  select(-c(time,depth_ft,surveyor,date)) 
+  select(-c(time,depth_ft,surveyor,date))
 bon_fish <- read.csv(here("data","bon_fish.csv"), stringsAsFactors=F) %>% # this file is already expanded
   janitor::clean_names(case="old_janitor") %>%
   filter(surveyor=="MWW") %>%
@@ -45,9 +45,9 @@ fish <- bind_rows(ab_fish, bon_fish) %>%
 
 ab_benthic <- read.csv(here("data","ab_benthic.csv"), stringsAsFactors=F) %>%
   janitor::clean_names(case="old_janitor") %>%
-  mutate(height=as.numeric(height))
+  mutate(height=as.numeric(height)) 
 ab_rugosity <- read.csv(here("data","ab_rugosity.csv"), stringsAsFactors=F) %>%
-  janitor::clean_names(case="old_janitor")
+  janitor::clean_names(case="old_janitor") 
 bon_benthic <- read.csv(here("data","bon_benthic.csv"),stringsAsFactors = F) %>%
   janitor::clean_names(case="old_janitor")
 human <- read.csv(here("data","site_human.csv"), stringsAsFactors=F) %>%

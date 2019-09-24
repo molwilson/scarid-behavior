@@ -11,10 +11,6 @@ output:
 
 ---
 
-Notes 11/11:
-* figure out dcast issues
-* replacing NA/0s within pipe
-
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 # set up
 knitr::opts_chunk$set(echo = FALSE,
@@ -34,6 +30,7 @@ library(nlme)
 # library(gamm4)
 # library(xtable)
 ```
+
 ```{r,message=FALSE,warning=FALSE, echo=FALSE}
 sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
   select(-X) %>%
@@ -57,9 +54,20 @@ fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
 - site level factors (benthic, fish, and rugosity) assessed at each of the 13 sites
 
 ```{r}
-sample <- group_by(sum_id, site, species, species_code, phase, island) %>% summarize(n=n())
+sample_tot <- sum_id %>%
+  filter(species_code != "rbp" & phase == "i") %>%
+  group_by(site, species, species_code, phase, island) %>% 
+  summarize(n=n())
+sample_28 <- sum_id %>%
+  filter(species_code != "rbp" & phase == "i" & length_cm <= 28) %>%
+  group_by(site, species, species_code, phase, island) %>% 
+  summarize(n=n())
+sample_30 <- sum_id %>%
+  filter(species_code != "rbp" & phase == "i" & length_cm <= 30) %>%
+  group_by(site, species, species_code, phase, island) %>% 
+  summarize(n=n())
 
-ggplot(sample, aes(x=factor(site, levels = sum_site$site), y=n)) +
+ggplot(sample_tot, aes(x=factor(site, levels = sum_site$site), y=n)) +
         facet_grid(phase~species) +
         geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
         scale_fill_manual(values = c("gray", "slategray2", "black")) +
