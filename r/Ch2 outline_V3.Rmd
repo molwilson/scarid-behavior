@@ -21,6 +21,7 @@ library(EnvStats) # boxplot stats
 library(mgcv)
 library(MuMIn)
 library(knitr)
+library(factoextra)
 
 site <- read.csv(here("data", "site.csv"), strip.white = T, stringsAsFactors = F) %>% select(-X)
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
@@ -95,7 +96,7 @@ sample_vet_sum <- sum_id %>%
 ## Table 1. Variable definitions
 ```{r, echo=F, message=F}
 Variable <- c('Time spent grazing','Bite rate','Feeding rate','Foray size')
-Definition <- c('Proportion of time spent grazing during follow','Bite rate while actively feeding','Bite rate over total follow time','Number of consecutive bites taken during single grazing foray')
+Definition <- c('Proportion of time spent grazing during follow','Bite rate while actively Grazing','Bite rate over total follow time','Number of consecutive bites taken during single grazing foray')
 Unit <- c('fraction','bites/second','bites/minute','bites/foray')
 var.table <- data.frame(Variable,Definition,Unit)
 kable(var.table)
@@ -123,7 +124,7 @@ shapiro.test(sum_id$for_bites) # non-normal
 
 ## Panel graph of site differences
 ```{r, echo = F, message = F, warning = F}
-# published feeding rate (bites/min) for reference lines if needed
+# published Feeding rate (bites/min) for reference lines if needed
 ref_qup15 <- (3329-33*15)/60
 ref_qup30 <- (3329-33*30)/60
 ref_stop15 <- (1089-17*15-56)/60
@@ -139,7 +140,7 @@ fr_qup <-
   #geom_abline(slope=0, intercept=ref_qup15,  col = "red",lty=2) +
   #geom_abline(slope=0, intercept=ref_qup25,  col = "red",lty=2) +
   #ylim(0, 50) +
-  labs(y = "Grazing rate \n (bites/min)", 
+  labs(y = "Feeding rate \n (bites/min)", 
        title = "S. vetula") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, face = "italic"),
@@ -620,7 +621,7 @@ pca_pred <- prcomp(na.omit(site %>%
                 select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy, scar_den, scar_bm, carn30_bm, lc_cover)),
   center = T, scale = T)
 
-autoplot(pca_pred, data = sum_site, shape = 'island', colour = 'island',
+autoplot(pca_pred, data = site, shape = 'island', colour = 'island',
          label = T,
          loadings = T, loadings.colour = 'gray',
          loadings.label = T, loadings.label.size = 3, loadings.label.colour = 'black',
@@ -634,6 +635,31 @@ sum_id_pca <- sum_id %>%
   left_join(select(sum_site,site,pc1_all,pc2_all), by = "site")
 sum_ssp_pca <- sum_ssp_sub %>%
   left_join(select(sum_site,site,pc1_all,pc2_all), by = "site")
+```
+
+### Better PCA?
+```{r, echo=F, message=F, warning=F}
+pca_data <- na.omit(site %>%
+  select(rugosity, ma_cover, ma_canopy, ta_cover, ta_canopy, lc_cover, scar_bm, scar_den, carn30_bm))
+names(pca_data)[1:9] =
+  c("rugosity", "macroalgal cover", "macroalgal canopy", "turf cover", "turf canopy", "coral cover", "scarid biomass", "scarid density", "predator biomass")
+
+pca_pred <- prcomp(pca_data, center = T, scale = T)
+
+fviz_pca_biplot(pca_pred,
+                col.ind = site$island,
+                mean.point = F,
+                label = "var",
+                repel = T
+                ) +
+  scale_shape_manual(values=c(15,16,17)) +
+  scale_color_manual(values = c("black","black","black")) +
+  labs(x = "PC1 (55.6%)", y = "PC2 (24.5%)", title = "") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+ggsave(here("figs/pca_pred.png"), width = 7, height = 5)
+
 ```
 
 ## GAMM results (see 5.8.19)
@@ -734,7 +760,7 @@ summary(gamm12$gam)
 plot(gamm12$gam,pages=1)
 ```
 
-Predicting feeding intensity (site-level medians, island as random effect)
+Predicting Grazing intensity (site-level medians, island as random effect)
 ```{r, echo=F, message=F, warning=F}
 m_data <- sum_ssp_pca
 
@@ -833,6 +859,27 @@ summary(gamm12$gam)
 ```
 
 # Supplement
+
+### Predator gape size
+
+From Mumby et al.:
+Grouper *E. striatus*, gape width (G): G = -0.5998 + (0.167 × TL)
+```{r}
+g30_mum <- -0.5998 + (0.167 * 30) # 4
+g40_mum <- -0.5998 + (0.167 * 40) # 6
+```
+
+From Goatley & Bellwood:
+Horizontal gape: G = -0.002 * SL + 6.421
+```{r}
+g30_goat <- -0.002 * 30 + 6.421
+g40_goat <- -0.002 * 40 + 6.421
+```
+
+
+Dorsoventral height (Rakitin & Kramer 1996):
+S. viride: 15cm FL > 4.5cm body depth
+S. vetula: 15cm FL > 4.5cm body depth
 
 ### loess plots for additional drivers?
 
