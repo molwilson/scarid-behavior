@@ -3,6 +3,7 @@ title: "Workflow"
 author: "Molly Wilson"
 date: "5/8/2019"
 output: html_document
+
 ---
 
 Data processing and analaysis workflow for 'Scarid Behavior':
@@ -22,6 +23,6 @@ Data processing and analaysis workflow for 'Scarid Behavior':
   
 3. Exploration/analysis files:
   - **Data_prodding.rmd**: exploring relationships among variables, distributions, etc.
-  - **Analysis.rmd**: initial boxplots/bargraphs looking at trends among islands/sites, testing ANOVAs/assumptions, predicted grazing impact, bite content calculations
+  - **Analysis_misc.rmd**: initial boxplots/bargraphs looking at trends among islands/sites, testing ANOVAs/assumptions, predicted grazing impact, bite content calculations
   - **Models.rmd**: PCAs, LMEs, GAMMs (exploratory, no .csv exports)
-  - **Ch2_outline_V3**: selected analyses for current manuscript outline
+  - **Paper_analyses**: selected analyses for current manuscript outline, as well as relevant precursors (checking sample sizes, testing for normality, etc.)

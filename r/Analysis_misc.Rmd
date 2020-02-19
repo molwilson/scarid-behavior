@@ -1,0 +1,348 @@
+---
+title: "Figures + Analysis"
+author: "Molly Wilson"
+date: "Dec. 2018"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    number_sections: true
+---
+
+Outline of selected figures and analyses:
+
+- Grazing differences between islands: (site or island level?)  
+-- ANOVAs to test statistical significance of differences here  
+- Total grazing impact of site-level biomass: measured vs. reported grazing rates (add line or color by feeding rate)  
+- Something looking at relationship with algal index vs. scarid biomass 
+- SEM?  
+
+Notes: 
+- re: lms/gamms: have been stressed about collinearities in the data, but some aren't that bad... return to models once I have a better handle on what I want to use (and make sure I'm looking at mixed effects models only?)  
+- Exclude Barbuda from this analysis...?  
+- From Nash et al. 2016:  
+  + used GAMMs with site and reef zone as random effects
+  + aggregated data to the site level
+  + used mean or median values based on skew of different predictor/response variables (within each site)
+
+
+```{r}
+# set up
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+library(startR)
+library(here)
+library(tidyverse)
+library(corrplot)
+library(ggplot2)
+library(RColorBrewer)
+library(ggfortify)
+library(ggsignif) # boxplot stats
+library(EnvStats) # boxplot stats
+library(car)
+library(nlme)
+library(gamm4)
+```
+```{r}
+sum_site <- read.csv(here("data","sum_site.csv"), stringsAsFactors=F) %>%
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island)
+sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
+  select(-X) %>%
+  mutate(island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))) %>%
+  arrange(island) %>%
+  filter(length_cm>=15)
+fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
+  select(-X)
+```
+
+# Island - level differences in grazing rates
+
+```{r}
+# Violin plot of inter-island differences
+ggplot(filter(sum_id, 
+              phase=="i" & length_cm>=16 & length_cm<=24 & species_code!="rbp"), 
+       aes(factor(island), fr)) + 
+  geom_violin(aes(fill=island)) +
+  geom_boxplot(width=0.1) + 
+  labs(y = "Feeding Rate (bites/hr)", x = "", title = "Hourly feeding rates (i. phase, 16-24cm)") +
+  geom_signif(comparisons = list(c("Antigua", "Barbuda"),c("Antigua","Bonaire"),c("Barbuda","Bonaire")), map_signif_level=TRUE) +
+  facet_grid(.~species) + 
+  stat_n_text() +
+  scale_fill_brewer(palette="Blues") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+# Length-weight relationships between islands
+ggplot(filter(sum_id, species_code != "rbp" & island != "Barbuda"), 
+       aes(x = length_cm, y = fr, colour = island)) +
+  facet_grid(.~species) +
+  geom_point(shape = 18) +
+  scale_shape(solid = FALSE) +
+  geom_smooth(method = lm, fullrange = FALSE) +
+  labs(y = "Feeding Rate (bites/hr)", x = "Length (cm)", title = "Hourly feeding rate") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values = c("navy", "darkseagreen", "slategray2"))
+
+# Calculating length-weight coefficients
+
+fr_anu_vir <- lm(fr~length_cm, data=filter(sum_id, island == "Antigua" & phase == "i" & species_code == "stop"))
+summary(fr_anu_vir) # fr(Antigua, S. viride, initial) = 445-8*L
+
+fr_anu_vet <- lm(fr~length_cm, data=filter(sum_id, island == "Antigua" & phase == "i" & species_code == "qup"))
+summary(fr_anu_vet) # fr(Antigua, S. vetula, initial) = 1030-12*L
+
+fr_bon_vir <- lm(fr~length_cm, data=filter(sum_id, island == "Bonaire" & phase == "i" & species_code == "stop"))
+summary(fr_bon_vir) # fr(Bonaire, S. viride, initial) = 1057-17*L
+
+fr_bon_vet <- lm(fr~length_cm, data=filter(sum_id, island == "Bonaire" & phase == "i" & species_code == "qup"))
+summary(fr_bon_vet) # fr(Bonaire, S. vetula, initial) = 1347+10*L
+```
+
+$$fr(Antigua, S. viride, i) = 445-8*L$$
+$$fr(Antigua, S. vetula, i) = 1030-12*L$$
+$$fr(Bonaire, S. viride, i) = 1057-17*L$$
+$$fr(Bonaire, S. vetula, i) = 1347+10*L$$
+
+# Comparison to published equations
+
+## Predicted feeding rates and bite sizes from standard equations
+Bite sizes as predicted by Bruggemann/Bozec:
+$$bs(S. vetula) = 4.013*10^{-4}*L^2$$
+$$bs(S. viride) = 5.257*10^{-4}*L^2$$
+
+Feeding rates as published by Bruggemann/Bozec
+$$fr(Published, S. viride, i) = 1089-17*L-56 $$
+  *(extra term because phase modifier is not used here (i=1))*
+$$fr(Published, S. vetula, initial) = 3329-33*L$$
+
+## Adding predicted feeding rates from observed relationships
+
+```{r}
+fish_fr <- fish %>% 
+  filter(species_code %in% c("stop", "qup") & island %in% c("Antigua","Bonaire")) %>%
+  mutate(
+    fr_pers = ifelse(island == "Antigua" & species_code == "stop", 445-8*length,
+                     ifelse(island == "Antigua" & species_code == "qup", 1030-12*length,
+                            ifelse(island == "Bonaire" & species_code == "stop", 
+                                   1057-17*length, 1347+10*length))),
+    fr_pub = ifelse(species_code == "stop", 1089-17*length-56, 3329-33*length),
+    bs = ifelse(species_code == "stop", 5.257*10^-4*length^2, 4.013*10^-4*length^2),
+    ag_pers = fr_pers*bs,
+    ag_pub = fr_pub*bs
+)
+
+ag_site <- fish_fr %>% group_by(site,island) %>%
+  summarize(personal=sum(ag_pers)/1000,published=sum(ag_pub)/1000)
+ag_melt <- ag_site %>% as.data.frame() %>% 
+  gather(source, area_grazed, -c(site,island))
+
+ggplot(filter(ag_melt, island == "Antigua"),
+      aes(x=reorder(site, -area_grazed), y=area_grazed)) +
+        geom_bar(aes(fill = source), position = "dodge", stat = "identity") +
+        scale_fill_manual(values = c("black", "slategray2")) +
+        labs(x = "Site", 
+             y = expression(Area~grazed~(m^2)~per~Hour), 
+            title = expression(Predicted~cumulative~grazing~impact~on~Antiguan~reefs~(m^2/hr))) +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(here("figs/grazing_imp.png"))
+```
+
+
+Testing for variance in behavior variables among sites
+```{r}
+
+sum_id_stop <- sum_id %>%
+  filter(species_code=="stop" & length_cm > 15 & length_cm < 30 & phase == "i") %>%
+  mutate(site = as.factor(site))
+sum_id_qup <- sum_id %>%
+  filter(species_code=="qup" & length_cm > 15 & length_cm < 30 & phase == "i" ) %>%
+  mutate(site = as.factor(site))
+
+# feeding rates
+leveneTest(fr ~ site, data = sum_id_stop) # variances are slightly heteroskedastic, p ~ 0.04, use KW instead of ANOVA
+kruskal.test(fr ~ site, data = sum_id_stop) # significant variation across sites, p < 0.001
+
+leveneTest(fr ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05, can use ANOVA
+aov_fr_qup <- aov(fr ~ site, data = sum_id_qup) 
+summary.aov(aov_fr_qup) # significant variation across sites, p < 0.001
+
+# bite rates
+leveneTest(br ~ site, data = sum_id_stop) # variances are heteroskedastic, p < 0.05
+kruskal.test(br ~ site, data = sum_id_stop) # no significant variation, p > 0.5
+
+leveneTest(br ~ site, data = sum_id_qup) # variances are are heteroskedastic, p < 0.05
+kruskal.test(br ~ site, data = sum_id_qup) # no significant variation, p > 0.5
+
+# time spent feeding
+leveneTest(g_frac ~ site, data = sum_id_stop) # variances are homogenous, p > 0.05
+aov_g_frac_qup <- aov(g_frac ~ site, data = sum_id_stop) 
+summary.aov(aov_g_frac_qup) # significant variation across sites, p < 0.001
+
+leveneTest(g_frac ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05
+aov_g_frac_qup <- aov(g_frac ~ site, data = sum_id_qup) 
+summary.aov(aov_g_frac_qup) # significant variation across sites, p < 0.001
+
+# foray length
+leveneTest(for_bites ~ site, data = sum_id_stop) # variances are homogenous, p > 0.05
+aov_for_bites_stop <- aov(for_bites ~ site, data = sum_id_stop) 
+summary.aov(aov_for_bites_stop) # significant variation across sites, p < 0.001
+
+leveneTest(for_bites ~ site, data = sum_id_qup) # variances are homogenous, p > 0.05
+aov_for_bites_qup <- aov(for_bites ~ site, data = sum_id_qup) 
+summary.aov(aov_for_bites_qup) # significant variation across sites, p < 0.001
+
+```
+
+
+# Bite content hypothesis
+
+Fish in high algal sites may be taking fewer bites because they can consume more algae per bite. Let's try and add a rough estimate of bite content as a function of algal canopy height.
+
+Notes/assumptions:
+* Using turf algal canopy height (for now, no macroalgal component - though S. viride does eat some macrogalgae)
+* Max bite height will be capped at radius of bite size ($\sqrt{BS}/\pi$)
+
+```{r}
+# grazing impact of fish from fish surveys
+fish_grazed <- fish_fr %>% 
+  left_join(select(sum_site, ta_canopy, site), by = "site") %>%
+  mutate(
+    bh_capped = ifelse(
+      ta_canopy < 2*sqrt(bs)/(22/7), ta_canopy, 2*sqrt(bs)/(22/7)), # if ta_canopy exceeds diameter of bite size, bite height is capped at bite size
+    bv = bs*ta_canopy,
+    bv_capped = bs*bh_capped,
+    vg = fr_pers*bv
+ )
+
+# grazing impact of fish from behavioral surveys
+sum_id_vg <- sum_id %>%
+  filter(species_code != "rbp") %>%
+  mutate(
+    bs = ifelse(species_code == "stop", 5.257*10^-4*length_cm^2, 4.013*10^-4*length_cm^2), # adding bite size equations from Mumby
+    bh_capped = ifelse(ta_canopy < 2*sqrt(bs)/(22/7), ta_canopy, 2*sqrt(bs)/(22/7)), # if ta_canopy exceeds diameter of bite size, bite height is capped at bite size
+    bv = bs*ta_canopy,
+    bv_capped = bs*bh_capped,
+    vg = fr*bv,
+    vg_capped = fr*bv_capped,
+    island = factor(island, levels = c("Bonaire","Antigua","Barbuda"))
+) %>%
+  arrange(island)
+test <- sum_id_vg %>% filter(site=="Pillars") %>% select(species, phase, length_cm, fr, ta_canopy, vg)
+
+# grazing impact averaged across individuals at each site (selecting for size 15-30cm)
+sum_ssp_vg <- sum_id_vg %>% 
+  filter(length_cm >= 15 & length_cm <= 30) %>%
+  group_by(site, island, species, species_code, phase) %>% 
+  summarize(
+    n=n(),
+    vg_mean=mean(vg),
+    vg_se=sd(vg)/sqrt(n),
+    vg_capped_mean=mean(vg_capped),
+    vg_capped_se=sd(vg_capped)/sqrt(n)
+    ) %>% 
+  select(-n)
+
+ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(title="Mean grazing impact by volume (initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 90, hjust = 1), 
+          plot.title = element_text(hjust = 0.5))
+
+ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_capped_mean)) +
+    geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_capped_mean-vg_capped_se, ymax=vg_capped_mean+vg_capped_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(title="Mean grazing impact by volume (capped height, initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 90, hjust = 1), 
+          plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# geom_point version
+# keep this to get legend for panel
+vg_facet <- ggplot(filter(sum_ssp_vg, species_code != "rbp" & phase == "i"), aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+    facet_grid(~species) +
+    labs(title="Mean grazing impact by volume (initial phase)", 
+         y="Grazing impact (cm3/hr)", 
+         x="Site") +
+    theme_bw() +
+    theme(strip.text = element_text(face = "italic"), 
+          axis.text.x = element_text(angle = 45, hjust = 1)
+          )
+
+vg_qup <- ggplot(filter(sum_ssp_vg, species_code == "qup" & phase == "i"), 
+                 aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+  labs(y = expression('Grazing impact (cm'^3*'/hr)'), 
+       x = "", 
+       title = "S. vetula") +
+  theme_bw() + 
+  theme(plot.margin = margin(1, 0, 0, 5, unit = "pt"),
+        axis.title.y = element_text(size=10),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "italic")
+        )
+
+vg_stop <- ggplot(filter(sum_ssp_vg, species_code == "stop" & phase == "i"), 
+                  aes(x=factor(site, levels = sum_site$site), y=vg_mean)) +
+    geom_point(stat = "identity", aes(color = fr_mean, size = ta_canopy), position = "dodge") +    
+    geom_errorbar(aes(ymin=vg_mean-vg_se, ymax=vg_mean+vg_se), width=.2,
+                 position=position_dodge(.9)) +
+  labs(y = "",
+       x = "", 
+       title = "S. viride") +
+  theme_bw() + 
+  theme(plot.margin = margin(1, 1, 0, 0, unit = "pt"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "italic")
+        )
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+  }
+legend <- get_legend(vg_facet)
+
+grid.arrange(
+  arrangeGrob(vg_qup, vg_stop, ncol=2), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1), heights = c(1))
+
+g <- grid.arrange(
+  arrangeGrob(vg_qup, vg_stop, ncol=2), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1), heights = c(1))
+  
+ggsave(here("figs/bc_point_panel.png"),g)
+```
+
