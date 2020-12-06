@@ -54,6 +54,32 @@ human <- read.csv(here("data","site_human.csv"), stringsAsFactors=F) %>%
   janitor::clean_names(case="old_janitor")
 ```
 
+## Sample sizes per site
+```{r}
+n_fish_tran <- fish %>% 
+  filter(biomass != 0) %>% 
+  group_by(site) %>%
+  summarize(n_tran = max(transect)) %>%
+  ungroup()
+
+mean_fish_tran <- n_fish_tran %>%
+  summarize(mean = mean(n_tran),
+            sd = sd(n_tran),
+            se = sd/sqrt(n()))
+
+n_benthic_tran <- bent_tran %>% 
+  group_by(site) %>%
+  summarize(n_tran = max(transect)) %>%
+  ungroup()
+
+n_rugosity_tran <- ab_rugosity %>% 
+  group_by(site) %>%
+  summarize(n_tran = max(transect)) %>%
+  ungroup()
+```
+
+
+
 ## Total fish population, by site
 ```{r,message=F,warning=F}
 fish_tran <- fish %>% 
