@@ -320,6 +320,7 @@ ggsave(here("figs/behavior_panel.png"),g)
 # indv plots for slides
 
 library(ggpubr)
+library(ggtext)
 
 fr_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
@@ -328,15 +329,14 @@ fr_qup <-
   geom_errorbar(aes(ymin=fr_median-fr_se, ymax=fr_median+fr_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = expression(Feeding~rate~(bites~min^-1)), 
-       title = "S. vetula") +
+  labs(y = "", 
+       title = "*S. vetula* (queen parrotfish)") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
+  theme(plot.title = element_markdown(hjust = 0.5),
         plot.margin = margin(5, 0, 0, 5, unit = "pt"),
         strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank()
         )
 
 fr_stop <- 
@@ -346,22 +346,23 @@ fr_stop <-
   geom_errorbar(aes(ymin=fr_median-fr_se, ymax=fr_median+fr_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = "",
-       title = "S. viride") +
+  labs(y = expression(Feeding~rate~(bites~min^-1)),
+       title = "*S. viride* (stoplight parrotfish)") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
+  theme(plot.title = element_markdown(hjust = 0.5),
         plot.margin = margin(5, 4, 0, 0, unit = "pt"),
         strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
+        axis.title.y = element_text(size=10)
         )
 
-ggarrange(fr_qup, fr_stop, 
+ggarrange(fr_stop, fr_qup, 
           #abels = c("A", "B"),
           ncol = 2, nrow = 1,
           common.legend = TRUE, legend = "right")
 
-ggsave(here("figs", "fr.png"), height = 3, width = 6)
+ggsave(here("figs", "fr.png"), height = 4, width = 8)
 
 fi_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
@@ -370,15 +371,14 @@ fi_qup <-
   geom_errorbar(aes(ymin=for_bites_median-for_bites_se, ymax=for_bites_median+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = expression(Grazing~intensity~(bites~foray^-1)), 
-       title = "S. vetula") +
+  labs(y = "", 
+       title = "*S. vetula* (queen parrotfish)") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
+  theme(plot.title = element_markdown(hjust = 0.5),
         plot.margin = margin(5, 0, 0, 5, unit = "pt"),
         strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank()
         )
 
 fi_stop <- 
@@ -388,22 +388,23 @@ fi_stop <-
   geom_errorbar(aes(ymin=for_bites_median-for_bites_se, ymax=for_bites_median+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = "",
-       title = "S. viride") +
+  labs(y = expression(Grazing~intensity~(bites~foray^-1)),
+       title = "*S. viride* (stoplight parrotfish)") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
+  theme(plot.title = element_markdown(hjust = 0.5),
         plot.margin = margin(5, 4, 0, 0, unit = "pt"),
         strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
+        axis.title.y = element_text(size=10)
         )
 
-ggarrange(fi_qup, fi_stop, 
+ggarrange(fi_stop, fi_qup, 
           #abels = c("A", "B"),
           ncol = 2, nrow = 1,
           common.legend = TRUE, legend = "right")
 
-ggsave(here("figs", "fi.png"), height = 3, width = 6)
+ggsave(here("figs", "fi.png"), height = 4, width = 8)
 ```
 
 

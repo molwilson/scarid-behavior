@@ -144,13 +144,15 @@ Panel graph of behavioral variables across sites:
 # ref_stop15 <- (1089-17*15-56)/60
 # ref_stop30 <- (1089-17*30-56)/60
 
+colors <- c("powderblue", "turquoise4", "steelblue4")
+
 fr_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
          aes(x=factor(site, levels = sum_site$site), y=fr_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   #geom_abline(slope=0, intercept=ref_qup15,  col = "red",lty=2) +
   #geom_abline(slope=0, intercept=ref_qup25,  col = "red",lty=2) +
   #ylim(0, 50) +
@@ -171,7 +173,7 @@ fr_stop <-
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   #geom_abline(slope=0, intercept=ref_stop15,  col = "red",lty=2) +
   #geom_abline(slope=0, intercept=ref_stop25,  col = "red",lty=2) +
   labs(y = "",
@@ -191,7 +193,7 @@ br_qup <-
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=br_mean-br_se, ymax=br_mean+br_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "Bite rate \n(bites/sec)", 
        x = "", 
        title = "") +
@@ -210,7 +212,7 @@ br_stop <-
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=br_mean-br_se, ymax=br_mean+br_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        # y = "S. vetula \nFeeding rate (bites/hr)", 
        x = "", 
@@ -229,7 +231,7 @@ gfrac_qup <-
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "Time grazing \n(fraction)", 
        x = "", 
        title = "") +
@@ -248,7 +250,7 @@ gfrac_stop <-
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        x = "", 
        title = "") +
@@ -266,36 +268,36 @@ fi_qup <-
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
   geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "Grazing intensity\n(bites/foray)", 
        x = "", 
        title = "") +
   theme_bw() + 
   theme(plot.margin = margin(0, 0, 0, 5, unit = "pt"),
         axis.title.y = element_text(size=8),
-        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=8),
         legend.position = "none")
 
 fi_stop <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
          aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
+  geom_bar(stat = "identity", aes(fill = island), alpha = 0.9, position = "dodge") +
   geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        x = "", 
        title = "") +
   theme_bw() + 
   theme(plot.margin = margin(0, 4, 0, 0, unit = "pt"),
-        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=8),
         legend.position = "none")
 
 legend_plot <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
          aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  scale_fill_brewer(palette = "Blues") +
+  geom_bar(stat = "identity", aes(fill = island), alpha = 0.9, position = "dodge") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        x = "", 
        title = "") +
@@ -317,7 +319,175 @@ g <- arrangeGrob(
               ncol=2, widths = c(5,1))
 plot(g)
 
-ggsave(here("figs/behavior_panel_means.png"), g, width = 5, height = 5)
+ggsave(here("figs/behavior_panel_means.png"), g, width = 7, height = 7)
+```
+
+Testing with violin plots
+```{r, message = F, warning = F}
+colors <- c("turquoise4", "powderblue", "steelblue4")
+
+fr_qup <- 
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=fr)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Feeding rate \n (bites/min)", 
+       title = "S. vetula") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
+        plot.margin = margin(5, 0, 0, 5, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
+        legend.position = "none")
+
+fr_stop <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=fr)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       # y = "S. vetula \nFeeding rate (bites/hr)", 
+       title = "S. viride") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
+        plot.margin = margin(5, 4, 0, 0, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+
+br_qup <- 
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=br)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Bite rate \n(bites/sec)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 5, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
+        legend.position = "none")
+
+br_stop <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=br)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       # y = "S. vetula \nFeeding rate (bites/hr)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 4, 0, 0, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+
+gfrac_qup <- 
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=g_frac)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Time grazing \n(fraction)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 5, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
+        legend.position = "none")
+
+gfrac_stop <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=g_frac)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 4, 0, 0, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+
+fi_qup <- 
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=for_bites)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Grazing intensity\n(bites/foray)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.margin = margin(0, 0, 0, 5, unit = "pt"),
+        axis.title.y = element_text(size=8),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none")
+
+fi_stop <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=for_bites)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.margin = margin(0, 4, 0, 0, unit = "pt"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none")
+
+legend_plot <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=g_frac)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       x = "", 
+       title = "") +
+  theme_bw() +
+  theme(legend.position = "right",
+        legend.title = element_blank())
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+  }
+legend <- get_legend(legend_plot)
+
+g <- arrangeGrob(
+  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, br_qup, br_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1,1.75)), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1))
+plot(g)
+
+ggsave(here("figs/behavior_panel_violin.png"), g, width = 8, height = 8)
 ```
 
 Kruskal-Wallis tests to look at significance of inter-site variance for different behavioral variables:
@@ -596,7 +766,7 @@ fviz_pca_biplot(pca_pred,
                 axes.linetype = "dotted"
                 ) +
   scale_shape_manual(values = c(15,16,17)) +
-  scale_color_manual(values = c("turquoise4", "midnightblue", "steelblue1")) +
+  scale_color_manual(values = colors) +
   labs(x = "PC1 (55.6%)", y = "PC2 (24.5%)", title = "") +
   theme_bw() +
   theme(legend.title = element_blank())
