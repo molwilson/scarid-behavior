@@ -13,6 +13,8 @@ output:
 
 *Formatted as: Coral Reefs note*
 
+**Mean version**
+
 ```{r, message=F, warning=F}
 library(here)
 library(tidyverse)
@@ -25,6 +27,7 @@ library(mgcv)
 library(MuMIn)
 library(knitr)
 library(factoextra)
+library(ggthemes)
 
 sum_site <- read.csv(here("data", "site.csv"), strip.white = T, stringsAsFactors = F) %>% select(-X)
 sum_id <- read.csv(here("data","sum_id.csv"), stringsAsFactors=F) %>%
@@ -47,19 +50,19 @@ sum_ssp_sub <- sum_id %>%
     length_mean=mean(length_cm),
     length_median=median(length_cm),
     length_se=sd(length_cm)/sqrt(n),
-    g_frac_median=median(g_frac),
+    g_frac_mean=mean(g_frac),
     g_frac_median=median(g_frac),
     g_frac_se=sd(g_frac)/sqrt(n),
-    br_median=median(br,na.rm=TRUE),
+    br_mean=mean(br,na.rm=TRUE),
     br_median=median(br,na.rm=TRUE),
     br_se=sd(br,na.rm=TRUE)/sqrt(n),
-    fr_median=median(fr),
+    fr_mean=mean(fr),
     fr_median=median(fr),
     fr_se=sd(fr)/sqrt(n),
-    for_dur_median=median(for_dur,na.rm=TRUE),
+    for_dur_mean=mean(for_dur,na.rm=TRUE),
     for_dur_median=median(for_dur,na.rm=TRUE),
     for_dur_se=sd(for_dur,na.rm=TRUE)/sqrt(n),
-    for_bites_median=median(for_bites,na.rm=TRUE),
+    for_bites_mean=mean(for_bites,na.rm=TRUE),
     for_bites_median=median(for_bites,na.rm=TRUE),
     for_bites_se=sd(for_bites,na.rm=TRUE)/sqrt(n)
     ) %>%
@@ -87,7 +90,7 @@ sample_vir_sum <- sum_id %>%
   group_by(species) %>% 
   summarize(n_sites = n(),
             n_total = sum(n),
-            n_median = median(n),
+            n_mean = mean(n),
             se = sd(n)/sqrt(n_sites))
 
 sample_vet_sum <- sum_id %>% 
@@ -97,7 +100,7 @@ sample_vet_sum <- sum_id %>%
   group_by(species) %>% 
   summarize(n_sites = n(),
             n_total = sum(n),
-            n_median = median(n),
+            n_mean = mean(n),
             se = sd(n)/sqrt(n_sites))
 
 ```
@@ -128,7 +131,7 @@ shapiro.test(sum_id$for_bites) # non-normal
 
 # all positively skewed, non-normally distributed -> should use median, should use Kruskall-Wallis
 ```
-All behavioral variables are positively skewed, non-normally distributed -> should use median values and Kruskall-Wallis instead of ANOVA for site-level differences
+All behavioral variables are positively skewed, non-normally distributed -> should use median values (?) and Kruskall-Wallis instead of ANOVA for site-level differences
 
 ## Inter-site differences
 
@@ -136,18 +139,20 @@ Panel graph of behavioral variables across sites:
 
 ```{r, message = F, warning = F}
 # published Feeding rate (bites/min) for reference lines if needed
-ref_qup15 <- (3329-33*15)/60
-ref_qup30 <- (3329-33*30)/60
-ref_stop15 <- (1089-17*15-56)/60
-ref_stop30 <- (1089-17*30-56)/60
+# ref_qup15 <- (3329-33*15)/60
+# ref_qup30 <- (3329-33*30)/60
+# ref_stop15 <- (1089-17*15-56)/60
+# ref_stop30 <- (1089-17*30-56)/60
+
+colors <- c("powderblue", "turquoise4", "steelblue4")
 
 fr_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
-         aes(x=factor(site, levels = sum_site$site), y=fr_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=fr_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=fr_median-fr_se, ymax=fr_median+fr_se), width=.2,
+  geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   #geom_abline(slope=0, intercept=ref_qup15,  col = "red",lty=2) +
   #geom_abline(slope=0, intercept=ref_qup25,  col = "red",lty=2) +
   #ylim(0, 50) +
@@ -164,11 +169,11 @@ fr_qup <-
 
 fr_stop <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=fr_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=fr_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=fr_median-fr_se, ymax=fr_median+fr_se), width=.2,
+  geom_errorbar(aes(ymin=fr_mean-fr_se, ymax=fr_mean+fr_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   #geom_abline(slope=0, intercept=ref_stop15,  col = "red",lty=2) +
   #geom_abline(slope=0, intercept=ref_stop25,  col = "red",lty=2) +
   labs(y = "",
@@ -184,11 +189,11 @@ fr_stop <-
 
 br_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
-         aes(x=factor(site, levels = sum_site$site), y=br_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=br_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=br_median-br_se, ymax=br_median+br_se), width=.2,
+  geom_errorbar(aes(ymin=br_mean-br_se, ymax=br_mean+br_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "Bite rate \n(bites/sec)", 
        x = "", 
        title = "") +
@@ -203,11 +208,11 @@ br_qup <-
 
 br_stop <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=br_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=br_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=br_median-br_se, ymax=br_median+br_se), width=.2,
+  geom_errorbar(aes(ymin=br_mean-br_se, ymax=br_mean+br_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        # y = "S. vetula \nFeeding rate (bites/hr)", 
        x = "", 
@@ -222,11 +227,11 @@ br_stop <-
 
 gfrac_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
-         aes(x=factor(site, levels = sum_site$site), y=g_frac_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=g_frac_median-g_frac_se, ymax=g_frac_median+g_frac_se), width=.2,
+  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "Time grazing \n(fraction)", 
        x = "", 
        title = "") +
@@ -241,11 +246,11 @@ gfrac_qup <-
 
 gfrac_stop <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=g_frac_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=g_frac_median-g_frac_se, ymax=g_frac_median+g_frac_se), width=.2,
+  geom_errorbar(aes(ymin=g_frac_mean-g_frac_se, ymax=g_frac_mean+g_frac_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        x = "", 
        title = "") +
@@ -259,40 +264,40 @@ gfrac_stop <-
 
 fi_qup <- 
   ggplot(filter(sum_ssp_sub, species_code == "qup"), 
-         aes(x=factor(site, levels = sum_site$site), y=for_bites_median)) +
+         aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
   geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=for_bites_median-for_bites_se, ymax=for_bites_median+for_bites_se), width=.2,
+  geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "Grazing intensity\n(bites/foray)", 
        x = "", 
        title = "") +
   theme_bw() + 
   theme(plot.margin = margin(0, 0, 0, 5, unit = "pt"),
         axis.title.y = element_text(size=8),
-        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=8),
         legend.position = "none")
 
 fi_stop <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=for_bites_median)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=for_bites_median-for_bites_se, ymax=for_bites_median+for_bites_se), width=.2,
+         aes(x=factor(site, levels = sum_site$site), y=for_bites_mean)) +
+  geom_bar(stat = "identity", aes(fill = island), alpha = 0.9, position = "dodge") +
+  geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        x = "", 
        title = "") +
   theme_bw() + 
   theme(plot.margin = margin(0, 4, 0, 0, unit = "pt"),
-        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=8),
         legend.position = "none")
 
 legend_plot <- 
   ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=g_frac_median)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  scale_fill_brewer(palette = "Blues") +
+         aes(x=factor(site, levels = sum_site$site), y=g_frac_mean)) +
+  geom_bar(stat = "identity", aes(fill = island), alpha = 0.9, position = "dodge") +
+  scale_fill_manual(values = colors) +
   labs(y = "",
        x = "", 
        title = "") +
@@ -309,104 +314,181 @@ get_legend<-function(myggplot){
 legend <- get_legend(legend_plot)
 
 g <- arrangeGrob(
-  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, br_qup, br_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1,2)), 
+  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, br_qup, br_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1,1.75)), 
               arrangeGrob(legend), 
               ncol=2, widths = c(5,1))
 plot(g)
-ggsave(here("figs/behavior_panel.png"),g)
+
+ggsave(here("figs/behavior_panel_means.png"), g, width = 7, height = 7)
 ```
 
-```{r}
-# indv plots for slides
-
-library(ggpubr)
-library(ggtext)
+Testing with violin plots
+```{r, message = F, warning = F}
+colors <- c("turquoise4", "powderblue", "steelblue4")
 
 fr_qup <- 
-  ggplot(filter(sum_ssp_sub, species_code == "qup"), 
-         aes(x=factor(site, levels = sum_site$site), y=fr_median)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=fr_median-fr_se, ymax=fr_median+fr_se), width=.2,
-                 position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = "", 
-       title = "*S. vetula* (queen parrotfish)") +
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=fr)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Feeding rate \n (bites/min)", 
+       title = "S. vetula") +
   theme_bw() + 
-  theme(plot.title = element_markdown(hjust = 0.5),
+  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
         plot.margin = margin(5, 0, 0, 5, unit = "pt"),
         strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.x = element_blank()
-        )
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
+        legend.position = "none")
 
 fr_stop <- 
-  ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=fr_median)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=fr_median-fr_se, ymax=fr_median+fr_se), width=.2,
-                 position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = expression(Feeding~rate~(bites~min^-1)),
-       title = "*S. viride* (stoplight parrotfish)") +
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=fr)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       # y = "S. vetula \nFeeding rate (bites/hr)", 
+       title = "S. viride") +
   theme_bw() + 
-  theme(plot.title = element_markdown(hjust = 0.5),
+  theme(plot.title = element_text(hjust = 0.5, face = "italic"),
         plot.margin = margin(5, 4, 0, 0, unit = "pt"),
         strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.x=element_blank(),
         axis.title.x = element_blank(),
-        axis.title.y = element_text(size=10)
-        )
+        legend.position = "none")
 
-ggarrange(fr_stop, fr_qup, 
-          #abels = c("A", "B"),
-          ncol = 2, nrow = 1,
-          common.legend = TRUE, legend = "right")
+br_qup <- 
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=br)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Bite rate \n(bites/sec)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 5, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
+        legend.position = "none")
 
-ggsave(here("figs", "fr.png"), height = 4, width = 8)
+br_stop <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=br)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       # y = "S. vetula \nFeeding rate (bites/hr)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 4, 0, 0, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+
+gfrac_qup <- 
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=g_frac)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Time grazing \n(fraction)", 
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 5, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
+        legend.position = "none")
+
+gfrac_stop <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=g_frac)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       x = "", 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 4, 0, 0, unit = "pt"),
+        strip.text = element_text(face = "italic"), 
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "none")
 
 fi_qup <- 
-  ggplot(filter(sum_ssp_sub, species_code == "qup"), 
-         aes(x=factor(site, levels = sum_site$site), y=for_bites_median)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=for_bites_median-for_bites_se, ymax=for_bites_median+for_bites_se), width=.2,
-                 position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = "", 
-       title = "*S. vetula* (queen parrotfish)") +
+  ggplot(filter(sum_id, species_code == "qup"), 
+         aes(x=factor(site, levels = sum_site$site), y=for_bites)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Grazing intensity\n(bites/foray)", 
+       x = "", 
+       title = "") +
   theme_bw() + 
-  theme(plot.title = element_markdown(hjust = 0.5),
-        plot.margin = margin(5, 0, 0, 5, unit = "pt"),
-        strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.x = element_blank()
-        )
+  theme(plot.margin = margin(0, 0, 0, 5, unit = "pt"),
+        axis.title.y = element_text(size=8),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none")
 
 fi_stop <- 
-  ggplot(filter(sum_ssp_sub, species_code == "stop"), 
-         aes(x=factor(site, levels = sum_site$site), y=for_bites_median)) +
-  geom_bar(stat = "identity", aes(fill = island), position = "dodge") +
-  geom_errorbar(aes(ymin=for_bites_median-for_bites_se, ymax=for_bites_median+for_bites_se), width=.2,
-                 position=position_dodge(.9)) +
-  scale_fill_brewer(palette = "Blues", name = "Island") +
-  labs(y = expression(Grazing~intensity~(bites~foray^-1)),
-       title = "*S. viride* (stoplight parrotfish)") +
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=for_bites)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       x = "", 
+       title = "") +
   theme_bw() + 
-  theme(plot.title = element_markdown(hjust = 0.5),
-        plot.margin = margin(5, 4, 0, 0, unit = "pt"),
-        strip.text = element_text(face = "italic"), 
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=10)
-        )
+  theme(plot.margin = margin(0, 4, 0, 0, unit = "pt"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size=7),
+        legend.position = "none")
 
-ggarrange(fi_stop, fi_qup, 
-          #abels = c("A", "B"),
-          ncol = 2, nrow = 1,
-          common.legend = TRUE, legend = "right")
+legend_plot <- 
+  ggplot(filter(sum_id, species_code == "stop"), 
+         aes(x=factor(site, levels = sum_site$site), y=g_frac)) +
+  geom_violin(aes(fill = island), alpha = 0.9) +
+  geom_boxplot(width = 0.1) +
+  scale_fill_manual(values = colors) +
+  labs(y = "",
+       x = "", 
+       title = "") +
+  theme_bw() +
+  theme(legend.position = "right",
+        legend.title = element_blank())
 
-ggsave(here("figs", "fi.png"), height = 4, width = 8)
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+  }
+legend <- get_legend(legend_plot)
+
+g <- arrangeGrob(
+  arrangeGrob(fr_qup, fr_stop, gfrac_qup, gfrac_stop, br_qup, br_stop, fi_qup, fi_stop, ncol=2, heights = c(1,1,1,1.75)), 
+              arrangeGrob(legend), 
+              ncol=2, widths = c(5,1))
+plot(g)
+
+ggsave(here("figs/behavior_panel_violin.png"), g, width = 8, height = 8)
 ```
-
 
 Kruskal-Wallis tests to look at significance of inter-site variance for different behavioral variables:
 
@@ -442,7 +524,7 @@ All significant (p < 0.001) except for fraction of time spent grazing.
 ## Loess plots of various drivers
 
 ```{r, message=F, warning=F}
-fr_q1 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = scar_bm/1000, y = fr_median)) +
+fr_q1 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = scar_bm/1000, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-10, 60) +
@@ -455,7 +537,7 @@ fr_q1 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = scar_bm/1000
         axis.title.x = element_blank()
         )
 
-fr_q2 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = consp_den, y = fr_median)) +
+fr_q2 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = carn30_bm/1000, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-10, 60) +
@@ -470,7 +552,7 @@ fr_q2 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = consp_den, y
         axis.title.x = element_blank()
         )
 
-fr_q3 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = rugosity, y = fr_median)) +
+fr_q3 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = rugosity, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-10, 60) +
@@ -485,7 +567,7 @@ fr_q3 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = rugosity, y 
         axis.title.x = element_blank()
         )
 
-fr_q4 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ta_canopy, y = fr_median)) +
+fr_q4 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ta_canopy, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-10, 60) +
@@ -500,7 +582,7 @@ fr_q4 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ta_canopy, y
         axis.title.x = element_blank()
         )
 
-fr_q5 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ta_cover, y = fr_median)) +
+fr_q5 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ta_cover, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-10, 60) +
@@ -515,7 +597,7 @@ fr_q5 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ta_cover, y 
         axis.title.x = element_blank()
         )
 
-fr_q7 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ma_cover, y = fr_median)) +
+fr_q7 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ma_cover, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-10, 60) +
@@ -530,7 +612,7 @@ fr_q7 <- ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = ma_cover, y 
         axis.title.x = element_blank()
         )
 
-fr_s1 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = scar_bm/1000, y = fr_median)) +
+fr_s1 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = scar_bm/1000, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-5, 20) +
@@ -541,26 +623,26 @@ fr_s1 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = scar_bm/100
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin = margin(0, 1, 0, 0, unit = "pt"),
-        axis.title.x = element_text(size = 9)
+        axis.title.x = element_text(size = 7)
         )
 
-fr_s2 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = consp_den, y = fr_median)) +
+fr_s2 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = carn30_bm/1000, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-5, 20) +
   labs(y = "", 
-       x = expression(atop(NA, atop(textstyle('Conspec. density'),
-                               textstyle('(indv/100m'^2*')')))),
+       x = expression(atop(NA, atop(textstyle('Predator biomass'),
+                               textstyle('(kg/100m'^2*')')))),
        title = "") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5),
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
-        axis.title.x = element_text(size = 9),
+        axis.title.x = element_text(size = 7),
         plot.margin = margin(0, 1, 0, 1, unit = "pt")
         )
 
-fr_s3 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = rugosity, y = fr_median)) +
+fr_s3 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = rugosity, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-5, 20) +
@@ -572,43 +654,43 @@ fr_s3 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = rugosity, y
   theme(plot.title = element_text(hjust = 0.5),
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
-        axis.title.x = element_text(size = 9),
+        axis.title.x = element_text(size = 7),
         plot.margin = margin(0, 1, 0, 1, unit = "pt")
         )
 
-fr_s4 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ta_canopy, y = fr_median)) +
+fr_s4 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ta_canopy, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-5, 20) +
   labs(y = "", 
-       x = expression(atop(NA, atop(textstyle('EAM canopy'),
+       x = expression(atop(NA, atop(textstyle('Turf canopy'),
                                textstyle('height (mm)')))), 
        title = "") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5),
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
-        axis.title.x = element_text(size = 9),
+        axis.title.x = element_text(size = 7),
         plot.margin = margin(0, 1, 0, 1, unit = "pt")
         )
 
-fr_s5 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ta_cover, y = fr_median)) +
+fr_s5 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ta_cover, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-5, 20) +
   labs(y = "", 
-       x = expression(atop(NA, atop(textstyle('EAM cover'),
+       x = expression(atop(NA, atop(textstyle('Turf cover'),
                                textstyle('(%)')))), 
        title = "") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5),
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
-        axis.title.x = element_text(size = 9),
+        axis.title.x = element_text(size = 7),
         plot.margin = margin(0, 1, 0, 1, unit = "pt")
         )
 
-fr_s7 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ma_cover, y = fr_median)) +
+fr_s7 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ma_cover, y = fr_mean)) +
   geom_smooth(method="loess", span=1) +
   geom_point(shape=18) +
   ylim(-5, 20) +
@@ -618,22 +700,45 @@ fr_s7 <- ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = ma_cover, y
        title = "") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5),
-        axis.title.x = element_text(size = 9),
+        axis.title.x = element_text(size = 7),
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
         plot.margin = margin(0, 1, 0, 1, unit = "pt")
         )
 
-label_vet = textGrob("S. vetula", gp=gpar(fontface="italic"), rot=270)
-label_vir = textGrob("S. viride", gp=gpar(fontface="italic"), rot=270)
+label_vet = textGrob("S. vetula", gp=gpar(fontface="italic", fontsize = 10), rot=270)
+label_vir = textGrob("S. viride", gp=gpar(fontface="italic", fontsize = 10), rot=270)
 
-g <- grid.arrange(left = "Feeding rate (bites/min.)",
-  arrangeGrob(fr_q1, fr_q3, fr_q4, fr_q5, fr_q7, ncol=5, right = label_vet),
-  arrangeGrob(fr_s1, fr_s3, fr_s4, fr_s5, fr_s7, ncol=5, right = label_vir), 
+g <- grid.arrange(left = textGrob("Feeding rate (bites/min.)", rot = 90, gp = gpar(fontsize = 10)),
+  arrangeGrob(fr_q1, fr_q2, fr_q3, fr_q4, fr_q5, fr_q7, ncol=6, right = label_vet),
+  arrangeGrob(fr_s1, fr_s2, fr_s3, fr_s4, fr_s5, fr_s7, ncol=6, right = label_vir), 
   nrow=2, heights = c(1,1.2)) 
 
-ggsave(here("figs/biplot_panel.png"),g)
+ggsave(here("figs/biplot_panel_means.png"), g, width = 7, height = 4)
 ```
+### Carnivore Loess for supplement
+```{r}
+ggplot(filter(sum_ssp_sub, species_code == "stop"), aes(x = carn30_bm, y = fr_mean)) +
+  geom_smooth(method="loess", span=1) +
+  geom_point(shape=18) +
+  labs(y = "Feeding rate (bites/min.)",
+       x = expression(atop(NA, atop(textstyle('Predator abundance')))), 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)
+        )
+
+ggplot(filter(sum_ssp_sub, species_code == "qup"), aes(x = carn30_bm, y = fr_mean)) +
+  geom_smooth(method="loess", span=1) +
+  geom_point(shape=18) +
+  labs(y = "Feeding rate (bites/min.)",
+       x = expression(atop(NA, atop(textstyle('Predator abundance')))), 
+       title = "") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)
+        )
+```
+
 
 ## PCA
 
@@ -648,14 +753,20 @@ print(pca_pred)
 pca_var <- get_pca_var(pca_pred)
 print(pca_var$contrib)
 
+set.seed(5)
 fviz_pca_biplot(pca_pred,
                 col.ind = sum_site$island,
                 mean.point = F,
                 label = "var",
-                repel = T
+                repel = T,
+                pointsize = 3,
+                alpha.var= 0.3,
+                col.var = "gray22",
+                labelsize = 4,
+                axes.linetype = "dotted"
                 ) +
-  scale_shape_manual(values=c(15,16,17)) +
-  scale_color_manual(values = c("black","black","black")) +
+  scale_shape_manual(values = c(15,16,17)) +
+  scale_color_manual(values = colors) +
   labs(x = "PC1 (55.6%)", y = "PC2 (24.5%)", title = "") +
   theme_bw() +
   theme(legend.title = element_blank())
@@ -681,88 +792,88 @@ sum_ssp_pca <- sum_ssp_sub %>%
 
 Note that these GAMMs are using the size subsetted data, as opposed to the full size ranges 
 
-Predicting feeding rate (site-level medians, island as random effect)
+Predicting feeding rate (site-level means, island as random effect)
 ```{r, message=F, warning=F}
 m_data <- sum_ssp_pca
 
-gamm1 <- gamm(fr_median ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
-           family = gaussian(link=identity),
-           random = list(island=~1),
-           data = m_data
-           )
-g1 <- c("g1", "Species + Size + PC1 + PC2", AICc(gamm1$lme), summary(gamm1$gam)$r.sq)
+# gamm1 <- gamm(fr_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
+#            family = gaussian(link=identity),
+#            random = list(island=~1),
+#            data = m_data
+#            )
+# g1 <- c("g1", "Species + Size + PC1 + PC2", AICc(gamm1$lme), summary(gamm1$gam)$r.sq)
 
-gamm2 <- gamm(fr_median ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
+gamm2 <- gamm(fr_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g2 <- c("g2", "Species + Size + PC1", AICc(gamm2$lme), summary(gamm2$gam)$r.sq)
 
-gamm3 <- gamm(fr_median ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
-           family = gaussian(link=identity),
-           random = list(island=~1),
-           data = m_data
-           )
-g3 <- c("g3", "Species + Size~Species + PC1~Species + PC2~Species", AICc(gamm3$lme), summary(gamm3$gam)$r.sq)
+# gamm3 <- gamm(fr_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
+#            family = gaussian(link=identity),
+#            random = list(island=~1),
+#            data = m_data
+#            )
+# g3 <- c("g3", "Species + Size~Species + PC1~Species + PC2~Species", AICc(gamm3$lme), summary(gamm3$gam)$r.sq)
 
-gamm4 <- gamm(fr_median ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3),
-           family = gaussian(link=identity),
-           random = list(island=~1),
-           data = m_data
-           )
-g4 <- c("g4", "Species + Size~Species + PC1~Species + PC2", AICc(gamm4$lme), summary(gamm4$gam)$r.sq)
+# gamm4 <- gamm(fr_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3),
+#            family = gaussian(link=identity),
+#            random = list(island=~1),
+#            data = m_data
+#            )
+# g4 <- c("g4", "Species + Size~Species + PC1~Species + PC2", AICc(gamm4$lme), summary(gamm4$gam)$r.sq)
 
-gamm5 <- gamm(fr_median ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3),
+gamm5 <- gamm(fr_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3),
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g5 <- c("g5", "Species + Size~Species + PC1~Species", AICc(gamm5$lme), summary(gamm5$gam)$r.sq)
 
-gamm6 <- gamm(fr_median ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm6 <- gamm(fr_mean ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g6 <- c("g6", "Size + PC1~Species", AICc(gamm6$lme), summary(gamm6$gam)$r.sq)
 
-gamm7 <- gamm(fr_median ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+gamm7 <- gamm(fr_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g7 <- c("g7", "Size~Species + PC1", AICc(gamm7$lme), summary(gamm7$gam)$r.sq)
 
-gamm8 <- gamm(fr_median ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+gamm8 <- gamm(fr_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g8 <- c("g8", "Species + Size~Species + PC1", AICc(gamm8$lme), summary(gamm8$gam)$r.sq)
 
-gamm9 <- gamm(fr_median ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm9 <- gamm(fr_mean ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g9 <- c("g9", "Species + Size + PC1~Species", AICc(gamm9$lme), summary(gamm9$gam)$r.sq)
 
-gamm10 <- gamm(fr_median ~ species + s(pc1_all, by = factor(species_code), k=3), 
+gamm10 <- gamm(fr_mean ~ species + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g10 <- c("g10", "Species + PC1~Species", AICc(gamm10$lme), summary(gamm10$gam)$r.sq)
 
-gamm11 <- gamm(fr_median ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm11 <- gamm(fr_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g11 <- c("g11", "Size~Species + PC1~Species", AICc(gamm11$lme), summary(gamm11$gam)$r.sq)
 
-gamm12 <- gamm(fr_median ~ species_code + s(pc1_all, k=3), 
+gamm12 <- gamm(fr_mean ~ species_code + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
@@ -770,7 +881,7 @@ gamm12 <- gamm(fr_median ~ species_code + s(pc1_all, k=3),
 g12 <- c("g12", "Species + PC1", AICc(gamm12$lme), summary(gamm12$gam)$r.sq)
 
 
-gtab_fr_site <- as.data.frame(rbind(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
+gtab_fr_site <- as.data.frame(rbind(g2,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
 kable(gtab_fr_site)
 
 # summary + plots from best models
@@ -778,88 +889,88 @@ summary(gamm10$gam)
 plot(gamm10$gam,pages=1)
 ```
 
-Predicting grazing intensity (site-level medians, island as random effect)
+Predicting grazing intensity (site-level means, island as random effect)
 ```{r, echo=F, message=F, warning=F}
 m_data <- sum_ssp_pca
 
-gamm1 <- gamm(for_bites_median ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
+gamm1 <- gamm(for_bites_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g1 <- c("g1", "Species + Size + PC1 + PC2", AICc(gamm1$lme), summary(gamm1$gam)$r.sq)
 
-gamm2 <- gamm(for_bites_median ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
+gamm2 <- gamm(for_bites_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g2 <- c("g2", "Species + Size + PC1", AICc(gamm2$lme), summary(gamm2$gam)$r.sq)
 
-gamm3 <- gamm(for_bites_median ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
+gamm3 <- gamm(for_bites_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, by = factor(species_code), k=3),
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g3 <- c("g3", "Species + Size~Species + PC1~Species + PC2~Species", AICc(gamm3$lme), summary(gamm3$gam)$r.sq)
 
-# gamm4 <- gamm(for_bites_median ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3),
+# gamm4 <- gamm(for_bites_mean ~ species_code + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3) + s(pc2_all, k=3),
 #            family = gaussian(link=identity),
 #            random = list(island=~1),
 #            data = m_data
 #            )
 # g4 <- c("g4", "Species + Size~Species + PC1~Species + PC2", AICc(gamm4$lme), summary(gamm4$gam)$r.sq)
 
-gamm5 <- gamm(for_bites_median ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm5 <- gamm(for_bites_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g5 <- c("g5", "Species + Size~Species + PC1~Species", AICc(gamm5$lme), summary(gamm5$gam)$r.sq)
 
-gamm6 <- gamm(for_bites_median ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm6 <- gamm(for_bites_mean ~ s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g6 <- c("g6", "Size + PC1~Species", AICc(gamm6$lme), summary(gamm6$gam)$r.sq)
 
-gamm7 <- gamm(for_bites_median ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+gamm7 <- gamm(for_bites_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g7 <- c("g7", "Size~Species + PC1", AICc(gamm7$lme), summary(gamm7$gam)$r.sq)
 
-gamm8 <- gamm(for_bites_median ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
+gamm8 <- gamm(for_bites_mean ~ species + s(length_mean, by = factor(species_code), k=3) + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g8 <- c("g8", "Species + Size~Species + PC1", AICc(gamm8$lme), summary(gamm8$gam)$r.sq)
 
-gamm9 <- gamm(for_bites_median ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm9 <- gamm(for_bites_mean ~ species + s(length_mean, k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g9 <- c("g9", "Species + Size + PC1~Species", AICc(gamm9$lme), summary(gamm9$gam)$r.sq)
 
-gamm10 <- gamm(for_bites_median ~ species + s(pc1_all, by = factor(species_code), k=3), 
+gamm10 <- gamm(for_bites_mean ~ species + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g10 <- c("g10", "Species + PC1~Species", AICc(gamm10$lme), summary(gamm10$gam)$r.sq)
 
-gamm11 <- gamm(for_bites_median ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
+gamm11 <- gamm(for_bites_mean ~ s(length_mean, by = factor(species_code), k=3) + s(pc1_all, by = factor(species_code), k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data
            )
 g11 <- c("g11", "Size~Species + PC1~Species", AICc(gamm11$lme), summary(gamm11$gam)$r.sq)
 
-gamm12 <- gamm(for_bites_median ~ species_code + s(pc1_all, k=3), 
+gamm12 <- gamm(for_bites_mean ~ species_code + s(pc1_all, k=3), 
            family = gaussian(link=identity),
            random = list(island=~1),
            data = m_data

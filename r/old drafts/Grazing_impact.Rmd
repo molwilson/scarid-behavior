@@ -59,23 +59,6 @@ fish <- read.csv(here("data","fish.csv"), stringsAsFactors=F) %>%
   select(-X)
 ```
 
-```{r}
-# testing size distribution...
-sum_id_sub <- sum_id %>%
-  filter(length_cm >= 15 & length_cm <= 30 & species_code %in% c("qup", "stop") & phase == "i")
-
-ggplot(data = sum_id_sub, aes(x = site, y = length_cm, group = site)) +
-  geom_boxplot() +
-  facet_grid(. ~ species)
-
-ggplot(data = sum_id_sub, aes(x = length_cm, group = site, fill = site)) +
-  geom_density(alpha = 0.1)
-
-lm <- lm(data = sum_ssp_pca, pc1_all ~ length_mean)
-summary(lm) # not significantly correlated with PC1
-```
-
-
 # Island - level differences in grazing rates
 
 ```{r}
@@ -168,7 +151,7 @@ ggplot(filter(ag_melt, island == "Antigua"),
             title = expression(Predicted~cumulative~grazing~impact~on~Antiguan~reefs~(m^2/hr))) +
         theme_bw() +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
-ggsave(here("figs/grazing_imp.png"))
+#ggsave(here("figs/grazing_imp.png"))
 ```
 
 
@@ -360,6 +343,6 @@ g <- grid.arrange(
               arrangeGrob(legend), 
               ncol=2, widths = c(5,1), heights = c(1))
   
-ggsave(here("figs/bc_point_panel.png"),g)
+#ggsave(here("figs/bc_point_panel.png"),g)
 ```
 
