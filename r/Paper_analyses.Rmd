@@ -788,7 +788,7 @@ sum_ssp_pca <- sum_ssp_sub %>%
 ```
 
 
-## GAMM results (see 5.8.19)
+## GAMM results
 
 Note that these GAMMs are using the size subsetted data, as opposed to the full size ranges 
 
@@ -885,13 +885,17 @@ gtab_fr_site <- as.data.frame(rbind(g2,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames
 kable(gtab_fr_site)
 
 # summary + plots from best models
+plot(gamm12$gam,pages=1)
+
+summary(gamm12$gam)
 summary(gamm10$gam)
-plot(gamm10$gam,pages=1)
+summary(gamm2$gam)
 ```
 
 Predicting grazing intensity (site-level means, island as random effect)
 ```{r, echo=F, message=F, warning=F}
 m_data <- sum_ssp_pca
+remove(g1, g2, g4, g6, g7, g8, g9, g10, g11, g12)
 
 gamm1 <- gamm(for_bites_mean ~ species_code + s(length_mean, k=3) + s(pc1_all, k=3) + s(pc2_all, k=3), 
            family = gaussian(link=identity),
@@ -979,13 +983,15 @@ g12 <- c("g12", "Species + PC1", AICc(gamm12$lme), summary(gamm12$gam)$r.sq)
 
 
 gtab_fi_site <- as.data.frame(rbind(g1,g2,g3,g5,g6,g7,g8,g9,g10,g11,g12)) %>% setNames(c("g","Model", "AICc", "Adj. R2")) %>% arrange(AICc)
-kable(gtab_fr_site)
+kable(gtab_fi_site)
 
 # plots from best models
 plot(gamm12$gam,pages=1)
 plot(gamm10$gam,pages=1)
 
 summary(gamm12$gam)
+summary(gamm10$gam)
+summary(gamm2$gam)
 ```
 
 ## Supplement/optional
