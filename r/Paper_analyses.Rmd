@@ -156,7 +156,7 @@ fr_qup <-
   #geom_abline(slope=0, intercept=ref_qup15,  col = "red",lty=2) +
   #geom_abline(slope=0, intercept=ref_qup25,  col = "red",lty=2) +
   #ylim(0, 50) +
-  labs(y = "Feeding rate \n (bites/min)", 
+  labs(y = expression(atop("Feeding rate", paste ("(bites ",min^-1,")"))), 
        title = "S. vetula") +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, face = "italic"),
@@ -194,7 +194,7 @@ br_qup <-
   geom_errorbar(aes(ymin=br_mean-br_se, ymax=br_mean+br_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_manual(values = colors) +
-  labs(y = "Bite rate \n(bites/sec)", 
+  labs(y = expression(atop("Bite rate", paste ("(bites ",sec^-1,")"))), 
        x = "", 
        title = "") +
   theme_bw() + 
@@ -269,7 +269,7 @@ fi_qup <-
   geom_errorbar(aes(ymin=for_bites_mean-for_bites_se, ymax=for_bites_mean+for_bites_se), width=.2,
                  position=position_dodge(.9)) +
   scale_fill_manual(values = colors) +
-  labs(y = "Grazing intensity\n(bites/foray)", 
+  labs(y = expression(atop("Grazing intensity", paste ("(bites ",foray^-1,")"))), 
        x = "", 
        title = "") +
   theme_bw() + 
